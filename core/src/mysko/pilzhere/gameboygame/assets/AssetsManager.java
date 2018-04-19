@@ -4,12 +4,14 @@
 package mysko.pilzhere.gameboygame.assets;
 
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.assets.loaders.BitmapFontLoader;
+import com.badlogic.gdx.assets.loaders.BitmapFontLoader.BitmapFontParameter;
 import com.badlogic.gdx.assets.loaders.FileHandleResolver;
 import com.badlogic.gdx.assets.loaders.TextureLoader.TextureParameter;
 import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 
@@ -26,6 +28,7 @@ public class AssetsManager {
 
 		// Fonts data locations.
 //			public static final String FONT_01 = "fonts/font01.ttf";
+		public static final String FONT_GB = "fonts/gb.fnt";
 
 		/**
 		 * Loads fonts into memory.
@@ -33,6 +36,15 @@ public class AssetsManager {
 		public static void loadFonts() {
 //				MANAGER.setLoader(FreeTypeFontGenerator.class, new FreeTypeFontGeneratorLoader(resolver));
 //				MANAGER.setLoader(BitmapFont.class, ".ttf", new FreetypeFontLoader(resolver));
+			
+				MANAGER.setLoader(BitmapFont.class, ".fnt", new BitmapFontLoader(resolver));
+				
+				BitmapFontParameter bmfParam = new BitmapFontParameter();
+				bmfParam.genMipMaps = false;
+				bmfParam.magFilter = TextureFilter.Nearest;
+				bmfParam.minFilter = TextureFilter.Nearest;
+				
+				MANAGER.load(FONT_GB, BitmapFont.class, bmfParam);
 //
 //				FreeTypeFontLoaderParameter size32Params = new FreeTypeFontLoaderParameter();
 //				size32Params.fontFileName = FONT_01;
@@ -64,9 +76,10 @@ public class AssetsManager {
 		}
 		
 		// Textures data locations.
-		public static final String TEST = "textures/test.png";
+		public static final String GUI = "textures/gui.png";
 		public static final String ATLAS01 = "textures/atlas01.png";
 		public static final String PLAYER = "textures/player.png";
+		public static final String SPIDER = "textures/spider.png";
 
 		/**
 		 * Loads textures into memory.
@@ -77,9 +90,10 @@ public class AssetsManager {
 			texParam.minFilter = TextureFilter.Nearest;
 			texParam.genMipMaps = false;
 			
-			MANAGER.load(TEST, Texture.class, texParam);
+			MANAGER.load(GUI, Texture.class, texParam);
 			MANAGER.load(ATLAS01, Texture.class, texParam);
 			MANAGER.load(PLAYER, Texture.class, texParam);
+			MANAGER.load(SPIDER, Texture.class, texParam);
 		}
 
 		/**

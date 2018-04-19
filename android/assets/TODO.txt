@@ -1,0 +1,17 @@
+At top is:
+Workbench to create stuff.
+Ladder = 5x woods
+Bridge = 5x woods
+
+Ladders/elevators
+Gems - dunno
+
+Enemies:
+Rats
+Maybe Bats
+Spiders
+Ants
+Worms
+
+New project: Yoshis Island
+Rotating island with 2D sprites on it. Control ppl and worship ur god.

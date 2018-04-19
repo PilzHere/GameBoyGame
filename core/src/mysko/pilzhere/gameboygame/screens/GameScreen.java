@@ -6,8 +6,11 @@ package mysko.pilzhere.gameboygame.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
@@ -31,7 +34,18 @@ import mysko.pilzhere.gameboygame.GameboyGame;
 import mysko.pilzhere.gameboygame.assets.AssetsManager;
 import mysko.pilzhere.gameboygame.entities.Entity;
 import mysko.pilzhere.gameboygame.entities.Player;
+import mysko.pilzhere.gameboygame.entities.blocks.Block;
+import mysko.pilzhere.gameboygame.entities.blocks.CoalBlock;
 import mysko.pilzhere.gameboygame.entities.blocks.DirtBlock;
+import mysko.pilzhere.gameboygame.entities.blocks.IronBlock;
+import mysko.pilzhere.gameboygame.entities.blocks.UnbreakableBlock;
+import mysko.pilzhere.gameboygame.entities.blocks.WoodBlock;
+import mysko.pilzhere.gameboygame.entities.enemies.Ant;
+import mysko.pilzhere.gameboygame.entities.enemies.Rat;
+import mysko.pilzhere.gameboygame.entities.enemies.Spider;
+import mysko.pilzhere.gameboygame.entities.resources.Mushroom;
+import mysko.pilzhere.gameboygame.entities.resources.Wood;
+import mysko.pilzhere.gameboygame.gui.PlayerGUI;
 import mysko.pilzhere.gameboygame.physics.CollisionContactListener;
 
 /**
@@ -48,110 +62,107 @@ public class GameScreen implements Screen {
 	private OrthographicCamera cam;
 	private Viewport viewport;
 	
+	public ShapeRenderer shapeRenderer;
+	
 	private TiledMap map01;
 	private OrthogonalTiledMapRenderer mapRenderer;
 	
-	private boolean dbgBodies = false;
+	private boolean renderB2DBodies = false;
 	
-	public Array<Entity> entities = new Array<Entity>();
+	public Array<Entity> players = new Array<Entity>(); 
+	public Array<Entity> blocks = new Array<Entity>();
+	public Array<Entity> enemies = new Array<Entity>();
+	public Array<Entity> placedTools = new Array<Entity>();
+	public Array<Entity> resources = new Array<Entity>();
 	
-	public final int PPM = 16;
+	public int objectsRendered;
 	
-	public final short PLAYER_COL = 0x1;
-	public final short TERRAIN_COL = 0x1 << 1;
-	public final short BLOCK_COL = 0x1 << 2;
+	public static final int PPM = 16;
 	
-	public final short PLAYER_COLLIDES_WITH = (short) TERRAIN_COL | BLOCK_COL;
-	public final short TERRAIN_COLLIDES_WITH = (short) PLAYER_COL;
-	public final short BLOCK_COLLIDES_WITH = (short) PLAYER_COL;
-	
-	Player testE;
+	private PlayerGUI playerGUI;
 	
 	public GameScreen(GameboyGame game) {
 		this.game = game;
 		
-		initPhysics();
+		initPhysicsWorld();
 		
 		cam = new OrthographicCamera();
-		cam.setToOrtho(false, Gdx.graphics.getWidth() / PPM, Gdx.graphics.getHeight() / PPM);
+		cam.setToOrtho(false, Gdx.graphics.getWidth() / GameScreen.PPM, Gdx.graphics.getHeight() / GameScreen.PPM);
 		cam.far = 1;
-		cam.position.set(new Vector2(160 / PPM * 8, 144 / PPM * 8), 0);
+		cam.position.set(new Vector2(GameboyGame.GAMEBOY_WINDOW_WIDTH / GameScreen.PPM * 8, GameboyGame.GAMEBOY_WINDOW_HEIGHT / GameScreen.PPM * 8), 0);
 		cam.update();
 		viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), cam);
 		
+//		Update game window size.
+		Gdx.graphics.setWindowedMode(GameboyGame.GAMEBOY_WINDOW_WIDTH * GameboyGame.DEFAULT_WINDOW_SCALE, GameboyGame.GAMEBOY_WINDOW_HEIGHT * GameboyGame.DEFAULT_WINDOW_SCALE);
+		
 		map01 = AssetsManager.MANAGER.get(AssetsManager.MAP01);
+		
 		mapRenderer = new OrthogonalTiledMapRenderer(map01);
+//		mapRenderer.getMap().getLayers().get(3).
+		
+		shapeRenderer = new ShapeRenderer();
 		
 		BodyDef mapWallsBodyDef = new BodyDef();
 		PolygonShape mapWallsShape = new PolygonShape();
 		FixtureDef mapWallsFixtureDef = new FixtureDef();
 		Body mapWallsBody;
 		
-//		Wall collisions
-		int offset = 1;
+//		Map collisions		
 		for (MapObject object : map01.getLayers().get("collision").getObjects().getByType(RectangleMapObject.class)) {
 			Rectangle rect = ((RectangleMapObject) object).getRectangle();
 			mapWallsBodyDef.type = BodyDef.BodyType.StaticBody;
-			mapWallsBodyDef.position.set(rect.getX() + offset + rect.getWidth() / 2, rect.getY() - offset + rect.getHeight() / 2);
-			mapWallsFixtureDef.filter.categoryBits = TERRAIN_COL;
-			mapWallsFixtureDef.filter.maskBits = TERRAIN_COLLIDES_WITH;
+			mapWallsBodyDef.position.set(rect.getX() + rect.getWidth() / 2, rect.getY() + rect.getHeight() / 2);
+			mapWallsFixtureDef.filter.categoryBits = CollisionContactListener.TERRAIN_COL;
+			mapWallsFixtureDef.filter.maskBits = CollisionContactListener.TERRAIN_COLLIDES_WITH;
+			mapWallsFixtureDef.friction = 0.5f;
 			mapWallsBody = b2dWorld.createBody(mapWallsBodyDef);
 			mapWallsShape.setAsBox(rect.getWidth() / 2, rect.height / 2);
 			mapWallsFixtureDef.shape = mapWallsShape;
 			mapWallsBody.createFixture(mapWallsFixtureDef);
-//			mapBody.setUserData("Wall");
 		}
 		mapWallsShape.dispose();
 		
-//		BodyDef mapWallsBodyDef2 = new BodyDef();
-//		PolygonShape mapWallsShape2 = new PolygonShape();
-//		FixtureDef mapWallsFixtureDef2 = new FixtureDef();
-//		Body mapWallsBody2;
-		
-//		Wall collisions
-		int offset2 = 1;
+//		Place blocks
 		for (MapObject object : map01.getLayers().get("blocks").getObjects()) {
-//			Rectangle rect = ((RectangleMapObject) object).getRectangle();
-//			mapWallsBodyDef2.type = BodyDef.BodyType.StaticBody;
-//			mapWallsBodyDef2.position.set(rect.getX() + offset2 + rect.getWidth() / 2, rect.getY() - offset2 + rect.getHeight() / 2);
-//			mapWallsFixtureDef2.filter.categoryBits = TERRAIN_COL;
-//			mapWallsFixtureDef2.filter.maskBits = TERRAIN_COLLIDES_WITH;
-//			mapWallsBody2 = b2dWorld.createBody(mapWallsBodyDef2);
-//			mapWallsShape2.setAsBox(rect.getWidth() / 2, rect.height / 2);
-//			mapWallsFixtureDef2.shape = mapWallsShape2;
-//			mapWallsBody2.createFixture(mapWallsFixtureDef2);
 			
-			if (object.getName() != null) {
+			if (object.getName() != null && !object.getName().isEmpty()) {
 				if (object.getName().equals("blockDirt")) {
-//					System.err.println(object.getName());
-//					float tempX = (Float) object.getProperties().get("x");
-					entities.add(new DirtBlock(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
-//					object.getProperties().
-					
+					blocks.add(new DirtBlock(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+				} else if (object.getName().equals("blockWood")) {
+					blocks.add(new WoodBlock(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+				} else if (object.getName().equals("blockCoal")) {
+					blocks.add(new CoalBlock(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+				} else if (object.getName().equals("blockIron")) {
+					blocks.add(new IronBlock(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+				} else if (object.getName().equals("blockMushroom")) {
+					resources.add(new Mushroom(this, (Float)object.getProperties().get("x") + 8, (Float)object.getProperties().get("y") + 8));
+				} else if (object.getName().equals("blockUnbreakable")) {
+					blocks.add(new UnbreakableBlock(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
 				}
 			}
-			
-//			mapBody.setUserData("Wall");
-		}
-//		mapWallsShape2.dispose();
-		
-		for (Entity entity : entities) {
-			((DirtBlock) entity).checkForNeighbours();
-			((DirtBlock) entity).updateSprite(AssetsManager.MANAGER.get(AssetsManager.ATLAS01, Texture.class));
 		}
 		
-		testE = new Player(this);
+//		Update blocks after placing to check for neighbors for adjusting texture(s).
+		for (Entity entity : blocks) {
+			((Block) entity).checkForNeighbours();
+			((Block) entity).updateSprite(AssetsManager.MANAGER.get(AssetsManager.ATLAS01, Texture.class));
+		}
+		
+		players.add(new Player(this, 10 * 16, 45 * 16));
+		
+		playerGUI = new PlayerGUI(this, (Player) players.get(0));
 	}
 	
-	private void initPhysics() {
-		Box2D.init();
-		
+	private void initPhysicsWorld() {		
 		Vector2 stdGravity = new Vector2(0, -90); // Y: -30.
 		contactListener = new CollisionContactListener();
 		b2dWorld = new World(new Vector2(stdGravity), true);
 		b2dWorld.setContactListener(contactListener);
 		
-		b2dDebugRenderer = new Box2DDebugRenderer();
+		if (GameboyGame.USING_B2D_DEBUG_RENDERER) {
+			b2dDebugRenderer = new Box2DDebugRenderer();
+		}
 	}
 	
 	@Override
@@ -160,38 +171,70 @@ public class GameScreen implements Screen {
 	}
 	
 	private void handleInput(float delta) {
+		if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+			enemies.add(new Spider(this, 11 * 16, 44 * 16));
+		}
+		
+		if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+			enemies.add(new Rat(this, 11 * 16, 44 * 16));
+		}
+		
+		if (Gdx.input.isKeyJustPressed(Input.Keys.Y)) {
+			enemies.add(new Ant(this, 11 * 16, 44 * 16));
+		}
+		
+//		if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+//			Gdx.graphics.setWindowedMode(160 * 4, 144 * 4);
+//		}
+		
+		if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+			resources.add(new Wood(this, 10 * 16, 45 * 16));
+		}
+		
 		if (Gdx.input.isKeyJustPressed(Input.Keys.F3)) {
-			dbgBodies = !dbgBodies;
+			renderB2DBodies = !renderB2DBodies;
 		}
 		
 		if (Gdx.input.isKeyJustPressed(Input.Keys.U)) {
-			for (Entity entity : entities) {
-				((DirtBlock) entity).checkForNeighbours();
-				((DirtBlock) entity).updateSprite(AssetsManager.MANAGER.get(AssetsManager.ATLAS01, Texture.class));
+			for (Entity entity : blocks) {
+				((Block) entity).checkForNeighbours();
+				((Block) entity).updateSprite(AssetsManager.MANAGER.get(AssetsManager.ATLAS01, Texture.class));
 			}
 		}
 	}
 	
 	private void tick(float delta) {
-		testE.tick(delta);
+		playerGUI.tick(delta);
 		
-		for (Entity entity : entities) {
+		for (Entity entity : players) {
 			entity.tick(delta);
 		}
 		
-//		moveCamera(cam, 0.15f);
+		for (Entity entity : blocks) {
+			entity.tick(delta);
+		}
 		
-		cam.position.x = (MathUtils.round(testE.cameraPos.x * PPM) / PPM);
-		cam.position.y = (MathUtils.round(testE.cameraPos.y * PPM) / PPM) - 0.75f * PPM;
-//		cam.position.lerp(new Vector3((MathUtils.round(testE.cameraPos.x * PPM) / PPM), (MathUtils.round(testE.cameraPos.y * PPM) / PPM) - 0.75f * PPM, 0), 2.4f/PPM);
+		for (Entity entity : placedTools) {
+			entity.tick(delta);
+		}
+		
+		for (Entity entity : enemies) {
+			entity.tick(delta);
+		}
+		
+		for (Entity entity : resources) {
+			entity.tick(delta);
+		}
+		
+//		moveCamera(cam);
 	}
 	
-//	private void moveCamera(OrthographicCamera camera, float speed) {
-//		float ispeed = 1.0f - speed;
-//		cam.position.scl(ispeed);
-//		Vector2 target = testE.cameraPos.scl(speed);
-//		cam.position.add(new Vector3(target.x, target.y - 1.8f, 0));
-//	}
+	private void moveCamera(OrthographicCamera camera) {
+		camera.position.x = (MathUtils.round(((Player)players.get(0)).cameraPos.x * GameScreen.PPM) / GameScreen.PPM);
+		camera.position.y = (MathUtils.round(((Player)players.get(0)).cameraPos.y * GameScreen.PPM) / GameScreen.PPM) - 0.81f * GameScreen.PPM;
+//		Interpolation.smooth.apply(camera.position.x);
+//		Interpolation.smooth.apply(camera.position.y);
+	}
 	
 	public boolean isInFrustum(Vector3 center, Vector3 dimensions) {
 		if (cam.frustum.boundsInFrustum(center, dimensions)) {
@@ -199,40 +242,103 @@ public class GameScreen implements Screen {
 		} else {
 			return false;
 		}
-	}
+	}	
 	
 	@Override
 	public void render(float delta) {
+		objectsRendered = 0;
+		
 		handleInput(delta);
 		tick(delta);
 
 		mapRenderer.setView(cam);
+		avoidMapTearingLeft(161);		
 		mapRenderer.render();
 		
 		game.batch.setProjectionMatrix(cam.combined);
 		game.batch.begin();
 		
-		for (Entity entity : entities) {
+		for (Entity entity : blocks) {
 			entity.render(delta);
+			if (entity.render) {
+				objectsRendered++;
+			}
 		}
 		
-		testE.render(delta);
+		for (Entity entity : placedTools) {
+			entity.render(delta);
+			if (entity.render) {
+				objectsRendered++;
+			}
+		}
+		
+		for (Entity entity : resources) {
+			entity.render(delta);
+			if (entity.render) {
+				objectsRendered++;
+			}
+		}
+		
+		for (Entity entity : enemies) {
+			entity.render(delta);
+			if (entity.render) {
+				objectsRendered++;
+			}
+		}
+		
+		for (Entity entity : players) {
+			entity.render(delta);
+			if (entity.render) {
+				objectsRendered++;
+			}
+		}
 		
 		game.batch.end();
 		
-		if (dbgBodies)
-			b2dDebugRenderer.render(b2dWorld, cam.combined);
+		if (GameboyGame.USING_B2D_DEBUG_RENDERER) {
+			if (renderB2DBodies) {
+				b2dDebugRenderer.render(b2dWorld, cam.combined);
+			}
+		}
 		
-		cam.update();
+//		cam.update();
 		
-		tickPhysicsCollisions();
+		playerGUI.render(delta);
+		
+//		For debugging
+		for (Entity entity : enemies) {
+			entity.drawRays();
+		}
+
+//		For debugging
+//		players.get(0).drawRays();
+		
+		tickPhysicsWorld();
+		moveCamera(cam);
+		cam.update(); // Fixed sometimes camera/player body jitter  @ startup(?)
+	}
+	
+	private Vector2 tempScreenPos = new Vector2();
+	private final Vector2 screenPosOffset = new Vector2(-1, 0);
+	private void avoidMapTearingLeft(float newWidth) {
+		mapRenderer.getViewBounds().setWidth(newWidth);
+		mapRenderer.getViewBounds().setPosition(mapRenderer.getViewBounds().getPosition(tempScreenPos).add(screenPosOffset));
+	}
+	
+	public void drawRays(Vector2 rayBegin, Vector2 rayEnd) {
+		shapeRenderer.setProjectionMatrix(cam.combined);
+//		System.out.println("B " + shapeRenderer.getProjectionMatrix());
+		shapeRenderer.begin(ShapeType.Line);
+		shapeRenderer.setColor(Color.RED);
+		shapeRenderer.line(rayBegin, rayEnd);
+		shapeRenderer.end();
 	}
 	
 	private float accumulator = 0;
 	private final float physTick = 1f/60f; // OLD: 1f/45f
 	private final int physVelIter = 6;
 	private final int physPosIter = 2;
-	private void tickPhysicsCollisions() {
+	private void tickPhysicsWorld() {
 		float frameTime = Math.min(Gdx.graphics.getDeltaTime(), 0.25f);
 		accumulator += frameTime;
 		while (accumulator >= physTick) {
@@ -246,6 +352,7 @@ public class GameScreen implements Screen {
 		cam.viewportWidth = width;
 		cam.viewportHeight = height;		
 		viewport.update(width, height);
+		
         cam.update();
 	}
 
@@ -266,8 +373,13 @@ public class GameScreen implements Screen {
 
 	@Override
 	public void dispose() {
-		mapRenderer.dispose();
 		map01.dispose();
+		mapRenderer.dispose();
+		
+		b2dDebugRenderer.dispose();
+		b2dWorld.dispose();
+		
+		shapeRenderer.dispose();
 	}
 
 }

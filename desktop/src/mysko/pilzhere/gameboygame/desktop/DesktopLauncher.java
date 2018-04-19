@@ -10,9 +10,9 @@ public class DesktopLauncher {
 	public static void main (String[] arg) {
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		
-		config.title = "SteamBoy DIG";
-		config.width = 160;
-		config.height = 144;
+		config.title = GameboyGame.APP_TITLE;
+		config.width = GameboyGame.GAMEBOY_WINDOW_WIDTH;
+		config.height = GameboyGame.GAMEBOY_WINDOW_HEIGHT;
 		config.foregroundFPS = 60;
 		config.backgroundFPS = 60;
 		config.fullscreen = false;
