@@ -5,6 +5,8 @@ package mysko.pilzhere.gameboygame.entities;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Sprite;
@@ -25,6 +27,9 @@ import com.badlogic.gdx.utils.Disposable;
 import mysko.pilzhere.gameboygame.assets.AssetsManager;
 import mysko.pilzhere.gameboygame.entities.blocks.Block;
 import mysko.pilzhere.gameboygame.entities.blocks.DirtBlock;
+import mysko.pilzhere.gameboygame.entities.enemies.Ant;
+import mysko.pilzhere.gameboygame.entities.enemies.Rat;
+import mysko.pilzhere.gameboygame.entities.enemies.Spider;
 import mysko.pilzhere.gameboygame.entities.resources.Coal;
 import mysko.pilzhere.gameboygame.entities.resources.Iron;
 import mysko.pilzhere.gameboygame.entities.resources.Mushroom;
@@ -63,6 +68,8 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 	private Sprite spriteClimbing;
 	
 	private Body body;
+	
+	private Sound sfxJump;
 	
 	public Vector2 cameraPos = new Vector2();
 	
@@ -130,6 +137,8 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 		body.setGravityScale(2);
 
 		shape.dispose();
+		
+		sfxJump = AssetsManager.MANAGER.get(AssetsManager.SFX_JUMP);
 	}
 	
 	private void setupSpriteWalkingLeft(Texture tex) {
@@ -246,6 +255,9 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 		}
 	}
 	
+	Ladder tempLadder;
+	
+	private boolean placeTool = false;
 	private Vector2 ladderPos = new Vector2();
 	
 	private boolean UPKeyHasBeenPressed = false;
@@ -332,6 +344,7 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 		
 		if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
 			if (grounded /*&& !digging*/ && (tempFractLeft != 0 || tempFractRight != 0)) {
+				sfxJump.play(1f);
 				body.setLinearVelocity(new Vector2(body.getLinearVelocity().x, 85));
 				groundedLeft = false;
 				groundedRight = false;
@@ -386,18 +399,66 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 		}
 		
 		if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
-			if (tempFractLeft != 0 && tempFractRight != 0) {
-				Vector2 tempDown = new Vector2(body.getTransform().getPosition().add(new Vector2(0, -6)));
-				rayPlaceTool = true;
-				super.getScreen().b2dWorld.rayCast(this, body.getTransform().getPosition(), tempDown);
-				rayPlaceTool = false;
-				
+			Vector2 tempDown = new Vector2();
+			if (tempFractLeft != 0 && tempFractRight != 0) { // if not in air...
 				if (!canClimb) {
-					super.getScreen().placedTools.add(new Ladder(super.getScreen(), ladderPos.x, ladderPos.y));
-					System.out.println("Placed ladder!");
+					tempDown.set((body.getTransform().getPosition().add(new Vector2(0, -6))));
+					rayPlaceTool = true;
+					super.getScreen().b2dWorld.rayCast(this, body.getTransform().getPosition(), tempDown);
+					rayPlaceTool = false;
+					
+					if (placeTool) {
+						System.out.println("ladder 1 !");					
+						super.getScreen().placedTools.add(new Ladder(super.getScreen(), ladderPos.x, ladderPos.y));
+						placeTool = false;
+					}
+					
+				}
+				
+//				if (!canClimb) {
+//					super.getScreen().placedTools.add(new Ladder(super.getScreen(), ladderPos.x, ladderPos.y));
+//					System.out.println("Placed ladder!");
+//				} else {
+					
+//				}
+			} else {
+				if (canClimb) {
+					Vector2 tempUp = new Vector2(body.getTransform().getPosition().add(new Vector2(0, -10)));
+					tempDown.set((body.getTransform().getPosition()));
+					
+					rayPlaceToolCimbing = true;
+					super.getScreen().b2dWorld.rayCast(this, tempDown, tempUp);
+					rayPlaceToolCimbing = false;
+					
+					System.out.println(tempLadder);
+					
+					if (tempLadder != null) {
+						tempUp.set(tempLadder.body.getTransform().getPosition());
+						tempDown.set(tempLadder.body.getTransform().getPosition().add(new Vector2(0, 16)));
+						rayLadderAlreadyPlaced = true;
+						super.getScreen().b2dWorld.rayCast(this, tempUp, tempDown);
+						rayLadderAlreadyPlaced = false;
+						
+						if (placeTool) {
+							System.out.println("ladder 2 !");
+							super.getScreen().placedTools.add(new Ladder(super.getScreen(), tempLadder.body.getTransform().getPosition().x - 10, tempLadder.body.getTransform().getPosition().y + 10));
+							placeTool = false;
+						}
+					}
+					
+					
+//					if (ladders.size == 1) {
+//						tempUp.set((body.getTransform().getPosition()));
+//						tempDown.set((body.getTransform().getPosition().add(new Vector2(0, 5))));
+						
+//						rayLadderAlreadyPlaced = true;
+//						super.getScreen().b2dWorld.rayCast(this, tempUp, tempDown);
+//						rayLadderAlreadyPlaced = false;
+						
+					
+//					}
 				}
 			}
-			
 		}
 	}
 	
@@ -457,6 +518,9 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 	
 	@Override
 	public void tick(float delta) {
+//		TEST
+//		System.out.println("ladders: " + ladders.size);
+		
 		elapsedTime += Gdx.graphics.getDeltaTime();
 		tempFractLeft = 0;
 		tempFractRight = 0;
@@ -561,6 +625,8 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 	
 	private boolean rayDig = false;
 	private boolean rayPlaceTool = false;
+	private boolean rayPlaceToolCimbing = false;
+	private boolean rayLadderAlreadyPlaced = false;
 	private boolean rayGroundedLeft = false;
 	private boolean rayGroundedRight = false;
 	private float tempFractLeft; // used to detect if in air. 0 = in air.
@@ -587,6 +653,16 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 							((Block) entity).updateSprite(AssetsManager.MANAGER.get(AssetsManager.ATLAS01, Texture.class));
 						}
 					}
+				} else if (fixture.getFilterData().categoryBits == CollisionContactListener.ENEMY_COL) {
+					Object tempObj = fixture.getBody().getUserData();
+//					All enemies should be of class Enemy but I'm lazy.
+					if (tempObj instanceof Spider) {
+						((Spider) tempObj).onHit();
+					} else if (tempObj instanceof Rat) {
+						((Rat) tempObj).onHit();
+					} else if (tempObj instanceof Ant) {
+						((Ant) tempObj).onHit();
+					}
 				}
 //				System.out.println(super.getScreen().entities.size);
 			} else if (rayGroundedLeft) {
@@ -606,6 +682,20 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 			} else if (rayPlaceTool) { // LADDER
 				if (fixture.getFilterData().categoryBits == CollisionContactListener.TERRAIN_COL || fixture.getFilterData().categoryBits == CollisionContactListener.BLOCK_COL) {
 					ladderPos.set(new Vector2(fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y + 10));
+					placeTool = true;
+//					super.getScreen().tools.add(new Ladder(super.getScreen(), fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y + 10));
+				}
+			} else if (rayPlaceToolCimbing) { // LADDER while climbing
+				if (fixture.getFilterData().categoryBits == CollisionContactListener.LADDER_COL) {
+					tempLadder = (Ladder) fixture.getBody().getUserData();
+//					ladderPos.set(new Vector2(fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y + 10));
+					placeTool = true;
+//					super.getScreen().tools.add(new Ladder(super.getScreen(), fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y + 10));
+				}
+			} else if (rayLadderAlreadyPlaced) { // LADDER while climbing
+				if (fixture.getFilterData().categoryBits == CollisionContactListener.LADDER_COL) {
+//					ladderPos.set(new Vector2(fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y + 10));
+					placeTool = false;
 //					super.getScreen().tools.add(new Ladder(super.getScreen(), fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y + 10));
 				}
 			}

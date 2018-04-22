@@ -42,7 +42,7 @@ public class Mushroom extends Resource implements Disposable {
 		bodyDef.position.set(bodySpawnX, bodySpawnY); // spawnPos
 
 		PolygonShape shape = new PolygonShape();
-		shape.setAsBox(4 * 8 / GameScreen.PPM, 4 * 8 / GameScreen.PPM);
+		shape.setAsBox(8 * 8 / GameScreen.PPM, 8 * 8 / GameScreen.PPM);
 
 		FixtureDef fixtDef = new FixtureDef();
 		fixtDef.filter.categoryBits = CollisionContactListener.RESOURCE_COL;
@@ -66,7 +66,7 @@ public class Mushroom extends Resource implements Disposable {
 	public void tick(float delta) {
 		super.tick(delta);
 		
-		super.spriteMain.setPosition(super.body.getTransform().getPosition().x - super.spriteMain.getRegionWidth() / 2, super.body.getTransform().getPosition().y + 3 - 0.99f - super.spriteMain.getRegionHeight() / 2);
+		super.spriteMain.setPosition(super.body.getTransform().getPosition().x - super.spriteMain.getRegionWidth() / 2, super.body.getTransform().getPosition().y + 1 - 0.99f - super.spriteMain.getRegionHeight() / 2);
 	}
 	
 	@Override
@@ -74,7 +74,7 @@ public class Mushroom extends Resource implements Disposable {
 		super.render(delta);
 		
 		super.bodyCenter.set(new Vector3(super.body.getPosition().x, super.body.getPosition().y, 0));
-		super.bodyDimensions.set(new Vector3(4 + super.bBExtra / GameScreen.PPM, 4 + super.bBExtra / GameScreen.PPM, 0));
+		super.bodyDimensions.set(new Vector3(8 + super.bBExtra / GameScreen.PPM, 8 + super.bBExtra / GameScreen.PPM, 0));
 		if (super.getScreen().isInFrustum(super.bodyCenter, super.bodyDimensions)) {
 			super.render = true;
 		} else {

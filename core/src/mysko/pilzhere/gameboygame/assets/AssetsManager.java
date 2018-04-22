@@ -3,12 +3,15 @@
  */
 package mysko.pilzhere.gameboygame.assets;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.assets.loaders.BitmapFontLoader;
 import com.badlogic.gdx.assets.loaders.BitmapFontLoader.BitmapFontParameter;
 import com.badlogic.gdx.assets.loaders.FileHandleResolver;
+import com.badlogic.gdx.assets.loaders.SoundLoader;
 import com.badlogic.gdx.assets.loaders.TextureLoader.TextureParameter;
 import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -96,12 +99,17 @@ public class AssetsManager {
 			MANAGER.load(SPIDER, Texture.class, texParam);
 		}
 
+		public static final String SFX_JUMP = "sounds/sfx/jump.wav";
+		
 		/**
 		 * Loads sounds into memory.
 		 */
 		public static void loadSounds() {
+			
+			MANAGER.setLoader(Sound.class, ".wav", new SoundLoader(resolver));
+			
 			// SFX
-			// manager.load(sfx01, Sound.class);
+			MANAGER.load(SFX_JUMP, Sound.class);
 
 			// Music
 			// manager.load(music01, Music.class);

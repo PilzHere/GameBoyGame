@@ -149,6 +149,19 @@ public class GameScreen implements Screen {
 			((Block) entity).updateSprite(AssetsManager.MANAGER.get(AssetsManager.ATLAS01, Texture.class));
 		}
 		
+		for (MapObject object : map01.getLayers().get("enemies").getObjects()) {
+			
+			if (object.getName() != null && !object.getName().isEmpty()) {
+				if (object.getName().equals("spider")) {
+					enemies.add(new Spider(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+				} else if (object.getName().equals("rat")) {
+					enemies.add(new Rat(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+				} else if (object.getName().equals("ant")) {
+					enemies.add(new Ant(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+				}
+			}
+		}
+		
 		players.add(new Player(this, 10 * 16, 45 * 16));
 		
 		playerGUI = new PlayerGUI(this, (Player) players.get(0));

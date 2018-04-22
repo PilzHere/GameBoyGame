@@ -28,7 +28,7 @@ public class Ladder extends Entity implements Disposable {
 	private TextureRegion texRegLadderVertical;
 	private Sprite spriteLadderVertical;
 	
-	private Body body;
+	public Body body;
 	
 	public Ladder(GameScreen screen, float spawnPosX, float spawnPosY) {
 		super.setScreen(screen);
@@ -47,7 +47,7 @@ public class Ladder extends Entity implements Disposable {
 		bodyDef.position.set(bodySpawnX + 10, bodySpawnY + 6); // spawnPos
 
 		PolygonShape shape = new PolygonShape();
-		shape.setAsBox(8 * 8 / GameScreen.PPM, 16 * 8 / GameScreen.PPM);
+		shape.setAsBox(10 * 8 / GameScreen.PPM, 16 * 8 / GameScreen.PPM);
 
 		FixtureDef fixtDef = new FixtureDef();
 		fixtDef.filter.categoryBits = CollisionContactListener.LADDER_COL;
@@ -73,7 +73,7 @@ public class Ladder extends Entity implements Disposable {
 	@Override
 	public void render(float delta) {
 		super.bodyCenter.set(new Vector3(body.getPosition().x, body.getPosition().y, 0));
-		super.bodyDimensions.set(new Vector3(8 + super.bBExtra / GameScreen.PPM, 16 + super.bBExtra / GameScreen.PPM, 0));
+		super.bodyDimensions.set(new Vector3(10 + super.bBExtra / GameScreen.PPM, 16 + super.bBExtra / GameScreen.PPM, 0));
 		
 		if (super.getScreen().isInFrustum(super.bodyCenter, super.bodyDimensions)) {
 			super.render = true;

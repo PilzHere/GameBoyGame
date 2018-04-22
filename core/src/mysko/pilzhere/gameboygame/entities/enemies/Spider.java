@@ -39,7 +39,7 @@ public class Spider extends Entity implements Disposable, RayCastCallback {
 	private Sprite spriteWalkingLeft;
 	
 	private Body body;
-	public int hp = 4;
+	public int hp = 3;
 	
 	private boolean facingLeft = true;
 	
@@ -63,7 +63,7 @@ public class Spider extends Entity implements Disposable, RayCastCallback {
 		bodyDef.position.set(bodySpawnX + 10, bodySpawnY + 6); // spawnPos
 
 		PolygonShape shape = new PolygonShape();
-		shape.setAsBox(10 * 8 / GameScreen.PPM, 8 * 8 / GameScreen.PPM);
+		shape.setAsBox(18 * 8 / GameScreen.PPM, 8 * 8 / GameScreen.PPM);
 
 		FixtureDef fixtDef = new FixtureDef();
 		fixtDef.filter.categoryBits = CollisionContactListener.ENEMY_COL;
@@ -111,10 +111,16 @@ public class Spider extends Entity implements Disposable, RayCastCallback {
 	private float tempFractLeft; // used to detect if in air. 0 = in air.
 	private float tempFractRight; // used to detect if in air. 0 = in air.
 	
+	private boolean rayLeft = false;
+	private boolean rayRight = false;
+	
 	private Vector2 groundedLeftRayStart = new Vector2();
 	private Vector2 groundedLeftRayEnd = new Vector2();
 	private Vector2 groundedRightRayStart = new Vector2();
 	private Vector2 groundedRightRayEnd = new Vector2();
+	
+	private Vector2 leftRayEnd = new Vector2();
+	private Vector2 rightRayEnd = new Vector2();
 	
 	private boolean movingLeft = true;
 	
@@ -128,12 +134,23 @@ public class Spider extends Entity implements Disposable, RayCastCallback {
 		groundedRightRayStart.set(body.getTransform().getPosition().add(new Vector2(4f, -4f)));
 		groundedRightRayEnd.set(body.getTransform().getPosition().add(new Vector2(4f, -4.1f)));
 		
+		leftRayEnd.set(body.getTransform().getPosition().add(new Vector2(-10, 0)));
+		rightRayEnd.set(body.getTransform().getPosition().add(new Vector2(10, 0)));
+		
 		rayGroundedLeft = true;
 		super.getScreen().b2dWorld.rayCast(this, groundedLeftRayStart, groundedLeftRayEnd);
 		rayGroundedLeft = false;
 		rayGroundedRight = true;
 		super.getScreen().b2dWorld.rayCast(this, groundedRightRayStart, groundedRightRayEnd);
 		rayGroundedRight = false;
+		
+		rayLeft = true;
+		super.getScreen().b2dWorld.rayCast(this, body.getTransform().getPosition(), leftRayEnd);
+		rayLeft = false;
+		rayRight = true;
+		super.getScreen().b2dWorld.rayCast(this, body.getTransform().getPosition(), rightRayEnd);
+		rayRight = false;
+		
 		
 		if (tempFractLeft != 0 && tempFractRight == 0) {
 			movingLeft = true;
@@ -143,13 +160,26 @@ public class Spider extends Entity implements Disposable, RayCastCallback {
 		
 		if (movingLeft) {
 			facingLeft = true;
-			body.setLinearVelocity(new Vector2(-40, body.getLinearVelocity().y));
+			body.setLinearVelocity(new Vector2(-70, body.getLinearVelocity().y));
 		} else {
 			facingLeft = false;
-			body.setLinearVelocity(new Vector2(40, body.getLinearVelocity().y));
+			body.setLinearVelocity(new Vector2(70, body.getLinearVelocity().y));
 		}
 		
 //		System.err.println("Spider FractL: " + tempFractLeft + "    FractR: " + tempFractRight + "    FacingLeft: " + facingLeft);
+	}
+	
+	public void onHit() {
+		this.hp--;
+		
+		if (hp <= 0) {
+			if (!super.getScreen().b2dWorld.isLocked()) {
+				super.getScreen().b2dWorld.destroyBody(this.body);
+				super.getScreen().enemies.removeValue(this, true);
+			}
+		}
+		
+		movingLeft = !movingLeft;
 	}
 	
 	public void onCollisionContinuos(Fixture fixture) {
@@ -220,6 +250,14 @@ public class Spider extends Entity implements Disposable, RayCastCallback {
 					groundedRight = true;
 				} else {
 					groundedRight = false;
+				}
+			} else if (rayLeft) {
+				if (fixture.getFilterData().categoryBits == CollisionContactListener.TERRAIN_COL || fixture.getFilterData().categoryBits == CollisionContactListener.BLOCK_COL) {
+					movingLeft = false;
+				}
+			} else if (rayRight) {
+				if (fixture.getFilterData().categoryBits == CollisionContactListener.TERRAIN_COL || fixture.getFilterData().categoryBits == CollisionContactListener.BLOCK_COL) {
+					movingLeft = true;
 				}
 			}
 		}

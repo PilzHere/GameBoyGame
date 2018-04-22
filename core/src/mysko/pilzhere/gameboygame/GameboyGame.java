@@ -20,7 +20,7 @@ public class GameboyGame extends Game {
 	public static final int DEFAULT_WINDOW_SCALE = 4;
 	
 	public static boolean USING_PROFILER = false; // false
-	public static boolean USING_B2D_DEBUG_RENDERER = false; // false
+	public static boolean USING_B2D_DEBUG_RENDERER = true; // false
 	public static GLProfiler profiler;
 	
 	public SpriteBatch batch;
@@ -83,8 +83,8 @@ public class GameboyGame extends Game {
 	public void render () {
 		tick();
 		
-//		Gdx.gl.glClearColor(77f/256, 83f/256, 60f/256, 1); // GameBoy darkest shade.
-		Gdx.gl.glClearColor(0.25f, 0.25f, 0.25f, 1);
+		Gdx.gl.glClearColor(15f/256, 40f/256, 15f/256, 1); // GameBoy darkest shade.
+//		Gdx.gl.glClearColor(0.25f, 0.25f, 0.25f, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		
 		super.render();
