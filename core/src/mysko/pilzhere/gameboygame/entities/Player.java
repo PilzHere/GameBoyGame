@@ -70,6 +70,7 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 	private Body body;
 	
 	private Sound sfxJump;
+	private Sound sfxDig;
 	
 	public Vector2 cameraPos = new Vector2();
 	
@@ -139,6 +140,7 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 		shape.dispose();
 		
 		sfxJump = AssetsManager.MANAGER.get(AssetsManager.SFX_JUMP);
+		sfxDig = AssetsManager.MANAGER.get(AssetsManager.SFX_DIG);
 	}
 	
 	private void setupSpriteWalkingLeft(Texture tex) {
@@ -652,6 +654,8 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 							((Block) entity).checkForNeighbours();
 							((Block) entity).updateSprite(AssetsManager.MANAGER.get(AssetsManager.ATLAS01, Texture.class));
 						}
+					} else {
+						sfxDig.play(1f);
 					}
 				} else if (fixture.getFilterData().categoryBits == CollisionContactListener.ENEMY_COL) {
 					Object tempObj = fixture.getBody().getUserData();

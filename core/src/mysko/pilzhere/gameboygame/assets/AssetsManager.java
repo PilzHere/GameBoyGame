@@ -100,6 +100,7 @@ public class AssetsManager {
 		}
 
 		public static final String SFX_JUMP = "sounds/sfx/jump.wav";
+		public static final String SFX_DIG = "sounds/sfx/dig.wav";
 		
 		/**
 		 * Loads sounds into memory.
@@ -110,6 +111,7 @@ public class AssetsManager {
 			
 			// SFX
 			MANAGER.load(SFX_JUMP, Sound.class);
+			MANAGER.load(SFX_DIG, Sound.class);
 
 			// Music
 			// manager.load(music01, Music.class);

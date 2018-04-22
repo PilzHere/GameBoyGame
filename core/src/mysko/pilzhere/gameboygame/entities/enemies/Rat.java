@@ -122,20 +122,32 @@ public class Rat extends Entity implements Disposable, RayCastCallback {
 	private Vector2 leftRayEnd = new Vector2();
 	private Vector2 rightRayEnd = new Vector2();
 	
+	private Vector2 downLeft = new Vector2(-4, -4);
+	private Vector2 downLeft2 = new Vector2(-4, -4.1f);
+	private Vector2 downRight = new Vector2(4, -4);
+	private Vector2 downRight2 = new Vector2(4, -4.1f);
+	
+	private Vector2 left = new Vector2(-10, 0);
+	private Vector2 right = new Vector2(10, 0);
+	
+	private final int moveSpeed = 50;
+	private Vector2 moveLeft = new Vector2();
+	private Vector2 moveRight = new Vector2();
+	
 	private boolean movingLeft = true;
 	
 	private void aiTick() {
 		tempFractLeft = 0;
 		tempFractRight = 0;
 		
-		groundedLeftRayStart.set(body.getTransform().getPosition().add(new Vector2(-4, -4f)));
-		groundedLeftRayEnd.set(body.getTransform().getPosition().add(new Vector2(-4, -4.1f)));
+		groundedLeftRayStart.set(body.getTransform().getPosition().add(downLeft));
+		groundedLeftRayEnd.set(body.getTransform().getPosition().add(downLeft2));
 		
-		groundedRightRayStart.set(body.getTransform().getPosition().add(new Vector2(4f, -4f)));
-		groundedRightRayEnd.set(body.getTransform().getPosition().add(new Vector2(4f, -4.1f)));
+		groundedRightRayStart.set(body.getTransform().getPosition().add(downRight));
+		groundedRightRayEnd.set(body.getTransform().getPosition().add(downRight2));
 		
-		leftRayEnd.set(body.getTransform().getPosition().add(new Vector2(-10, 0)));
-		rightRayEnd.set(body.getTransform().getPosition().add(new Vector2(10, 0)));
+		leftRayEnd.set(body.getTransform().getPosition().add(left));
+		rightRayEnd.set(body.getTransform().getPosition().add(right));
 		
 		rayGroundedLeft = true;
 		super.getScreen().b2dWorld.rayCast(this, groundedLeftRayStart, groundedLeftRayEnd);
@@ -157,12 +169,15 @@ public class Rat extends Entity implements Disposable, RayCastCallback {
 			movingLeft = false;
 		}
 		
+		moveLeft.set(-moveSpeed, body.getLinearVelocity().y);
+		moveRight.set(moveSpeed, body.getLinearVelocity().y);
+		
 		if (movingLeft) {
 			facingLeft = true;
-			body.setLinearVelocity(new Vector2(-50, body.getLinearVelocity().y));
+			body.setLinearVelocity(moveLeft);
 		} else {
 			facingLeft = false;
-			body.setLinearVelocity(new Vector2(50, body.getLinearVelocity().y));
+			body.setLinearVelocity(moveRight);
 		}
 		
 //		System.err.println("Spider FractL: " + tempFractLeft + "    FractR: " + tempFractRight + "    FacingLeft: " + facingLeft);
@@ -187,6 +202,8 @@ public class Rat extends Entity implements Disposable, RayCastCallback {
 		}
 	}
 	
+	private final float animSpeed = 2.5f;
+	private final float spriteOffsetY = 0.99f;
 	float elapsedTime = 0;
 	@Override
 	public void tick(float delta) {
@@ -194,7 +211,7 @@ public class Rat extends Entity implements Disposable, RayCastCallback {
 		
 		aiTick();
 		
-		spriteWalkingLeft.setRegion(animWalkingLeft.getKeyFrame(elapsedTime * 2.5f, true));
+		spriteWalkingLeft.setRegion(animWalkingLeft.getKeyFrame(elapsedTime * animSpeed, true));
 		
 		if (facingLeft) {
 			spriteIdleLeft.setFlip(false, false);
@@ -204,8 +221,8 @@ public class Rat extends Entity implements Disposable, RayCastCallback {
 			spriteWalkingLeft.setFlip(true, false);
 		}
 		
-		spriteIdleLeft.setPosition(body.getTransform().getPosition().x - spriteIdleLeft.getRegionWidth() / 2, body.getTransform().getPosition().y + 0.99f - spriteIdleLeft.getRegionHeight() / 2);
-		spriteWalkingLeft.setPosition(body.getTransform().getPosition().x - spriteWalkingLeft.getRegionWidth() / 2, body.getTransform().getPosition().y + 0.99f - spriteWalkingLeft.getRegionHeight() / 2);
+		spriteIdleLeft.setPosition(body.getTransform().getPosition().x - spriteIdleLeft.getRegionWidth() / 2, body.getTransform().getPosition().y + spriteOffsetY - spriteIdleLeft.getRegionHeight() / 2);
+		spriteWalkingLeft.setPosition(body.getTransform().getPosition().x - spriteWalkingLeft.getRegionWidth() / 2, body.getTransform().getPosition().y + spriteOffsetY - spriteWalkingLeft.getRegionHeight() / 2);
 	}
 
 	@Override
