@@ -6,12 +6,10 @@ package mysko.pilzhere.gameboygame.entities;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -26,11 +24,11 @@ import com.badlogic.gdx.utils.Disposable;
 
 import mysko.pilzhere.gameboygame.assets.AssetsManager;
 import mysko.pilzhere.gameboygame.entities.blocks.Block;
-import mysko.pilzhere.gameboygame.entities.blocks.DirtBlock;
 import mysko.pilzhere.gameboygame.entities.enemies.Ant;
 import mysko.pilzhere.gameboygame.entities.enemies.Rat;
 import mysko.pilzhere.gameboygame.entities.enemies.Spider;
 import mysko.pilzhere.gameboygame.entities.resources.Coal;
+import mysko.pilzhere.gameboygame.entities.resources.Exit;
 import mysko.pilzhere.gameboygame.entities.resources.Iron;
 import mysko.pilzhere.gameboygame.entities.resources.Mushroom;
 import mysko.pilzhere.gameboygame.entities.resources.Wood;
@@ -46,74 +44,82 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 
 	private TextureRegion texRegIdleLeft;
 	private Sprite spriteIdleLeft;
-	
+
 	private TextureRegion[] texRegsWalkingLeft;
 	private Animation<TextureRegion> animWalkingLeft;
 	private Sprite spriteWalkingLeft;
-	
+
 	private TextureRegion[] texRegsDiggingLeft;
 	private Animation<TextureRegion> animDiggingLeft;
 	private Sprite spriteDiggingLeft;
-	
+
 	private TextureRegion[] texRegsDiggingDown;
 	private Animation<TextureRegion> animDiggingDown;
 	private Sprite spriteDiggingDown;
-	
+
 	private TextureRegion[] texRegsDiggingUp;
 	private Animation<TextureRegion> animDiggingUp;
 	private Sprite spriteDiggingUp;
-	
+
 	private TextureRegion[] texRegsClimbing;
 	private Animation<TextureRegion> animClimbing;
 	private Sprite spriteClimbing;
-	
-	private Body body;
-	
+
+	public boolean remove = false;
+
+	public Body body;
+
 	private Sound sfxJump;
 	private Sound sfxDig;
-	
+	private Sound sfxDestroy;
+	private Sound sfxItemObtain;
+	private Sound sfxMushroomObtain;
+	private Sound sfxPlayerHurt;
+	private Sound sfxDenied;
+	private Sound sfxEnemyHit;
+
 	public Vector2 cameraPos = new Vector2();
-	
+
 	private boolean facingLeft = true;
 	private boolean facingDown = false;
 	private boolean facingUp = false;
-	
+
 	private boolean groundedLeft = false;
 	private boolean groundedRight = false;
 	private boolean grounded = false;
-	
-//	Stats
+
+	// Stats
 	public int hp = 10;
 	public boolean invincible = false;
-	
+
 	public byte xWoods = 0;
 	public byte xCoal = 0;
 	public byte xIron = 0;
-	
-//	Actions
+
+	// Actions
 	private boolean movingLR = false;
 	private boolean digging = false;
 	private boolean canClimb = false;
-	
-//	Not sure if to keep these features...
+
+	// Not sure if to keep these features...
 	private boolean extendedDigFeature = false;
-	
+
 	private Vector2 digRayEnd = new Vector2();
-//	private boolean facingUp; 
-	
+
 	public Player(GameScreen screen, float spawnPosX, float spawnPosY) {
 		super.setScreen(screen);
-		
-		texRegIdleLeft = new TextureRegion(AssetsManager.MANAGER.get(AssetsManager.PLAYER, Texture.class), 11, 1, 8, 12);
+
+		texRegIdleLeft = new TextureRegion(AssetsManager.MANAGER.get(AssetsManager.PLAYER, Texture.class), 11, 1, 8,
+				12);
 		spriteIdleLeft = new Sprite(texRegIdleLeft);
-		
+
 		setupSpriteWalkingLeft(AssetsManager.MANAGER.get(AssetsManager.PLAYER, Texture.class));
 		setupSpriteDiggingLeft(AssetsManager.MANAGER.get(AssetsManager.PLAYER, Texture.class));
 		setupSpriteDiggingDown(AssetsManager.MANAGER.get(AssetsManager.PLAYER, Texture.class));
 		setupSpriteDiggingUp(AssetsManager.MANAGER.get(AssetsManager.PLAYER, Texture.class));
 		setupSpriteClimbing(AssetsManager.MANAGER.get(AssetsManager.PLAYER, Texture.class));
-		
-//		Body
+
+		// Body
 		BodyDef bodyDef = new BodyDef();
 		bodyDef.type = BodyType.DynamicBody;
 		bodyDef.allowSleep = false;
@@ -138,21 +144,27 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 		body.setGravityScale(2);
 
 		shape.dispose();
-		
+
 		sfxJump = AssetsManager.MANAGER.get(AssetsManager.SFX_JUMP);
 		sfxDig = AssetsManager.MANAGER.get(AssetsManager.SFX_DIG);
+		sfxDestroy = AssetsManager.MANAGER.get(AssetsManager.SFX_DESTROY);
+		sfxItemObtain = AssetsManager.MANAGER.get(AssetsManager.SFX_ITEM_OBTAIN);
+		sfxMushroomObtain = AssetsManager.MANAGER.get(AssetsManager.SFX_MUSHROOM_OBTAIN);
+		sfxPlayerHurt = AssetsManager.MANAGER.get(AssetsManager.SFX_PLAYER_HURT);
+		sfxDenied = AssetsManager.MANAGER.get(AssetsManager.SFX_DENIED);
+		sfxEnemyHit = AssetsManager.MANAGER.get(AssetsManager.SFX_ENEMY_HIT);
 	}
-	
+
 	private void setupSpriteWalkingLeft(Texture tex) {
 		TextureRegion texRegWalkingLeft1 = new TextureRegion(tex, 20, 1, 8, 12);
 		TextureRegion texRegWalkingLeft2 = new TextureRegion(tex, 11, 1, 8, 12);
 		TextureRegion texRegWalkingLeft3 = new TextureRegion(tex, 29, 1, 8, 12);
-		
+
 		texRegsWalkingLeft = new TextureRegion[3];
 		texRegsWalkingLeft[0] = texRegWalkingLeft1;
 		texRegsWalkingLeft[1] = texRegWalkingLeft3;
 		texRegsWalkingLeft[2] = texRegWalkingLeft2;
-		
+
 		int index = 0;
 		for (int i = 0; i < 2; i++) {
 			texRegsWalkingLeft[index++] = texRegsWalkingLeft[i];
@@ -160,20 +172,20 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 
 		float frameDur = 1f / 4f;
 		animWalkingLeft = new Animation<TextureRegion>(frameDur, texRegsWalkingLeft);
-		
+
 		spriteWalkingLeft = new Sprite(animWalkingLeft.getKeyFrame(0));
 	}
-	
+
 	private void setupSpriteDiggingLeft(Texture tex) {
 		TextureRegion texRegDiggingLeft1 = new TextureRegion(tex, 38, 1, 13, 12);
 		TextureRegion texRegDiggingLeft2 = new TextureRegion(tex, 52, 1, 13, 12);
 		TextureRegion texRegDiggingLeft3 = new TextureRegion(tex, 66, 1, 13, 12);
-		
+
 		texRegsDiggingLeft = new TextureRegion[3];
 		texRegsDiggingLeft[0] = texRegDiggingLeft1;
 		texRegsDiggingLeft[1] = texRegDiggingLeft2;
 		texRegsDiggingLeft[2] = texRegDiggingLeft3;
-		
+
 		int index = 0;
 		for (int i = 0; i < 2; i++) {
 			texRegsDiggingLeft[index++] = texRegsDiggingLeft[i];
@@ -181,20 +193,20 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 
 		float frameDur = 1f / 4f;
 		animDiggingLeft = new Animation<TextureRegion>(frameDur, texRegsDiggingLeft);
-		
+
 		spriteDiggingLeft = new Sprite(animDiggingLeft.getKeyFrame(0));
 	}
-	
+
 	private void setupSpriteDiggingDown(Texture tex) {
 		TextureRegion texRegDiggingDown1 = new TextureRegion(tex, 38, 14, 13, 11);
 		TextureRegion texRegDiggingDown2 = new TextureRegion(tex, 52, 14, 13, 11);
 		TextureRegion texRegDiggingDown3 = new TextureRegion(tex, 66, 14, 13, 11);
-		
+
 		texRegsDiggingDown = new TextureRegion[3];
 		texRegsDiggingDown[0] = texRegDiggingDown1;
 		texRegsDiggingDown[1] = texRegDiggingDown2;
 		texRegsDiggingDown[2] = texRegDiggingDown3;
-		
+
 		int index = 0;
 		for (int i = 0; i < 2; i++) {
 			texRegsDiggingDown[index++] = texRegsDiggingDown[i];
@@ -202,20 +214,20 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 
 		float frameDur = 1f / 4f;
 		animDiggingDown = new Animation<TextureRegion>(frameDur, texRegsDiggingDown);
-		
+
 		spriteDiggingDown = new Sprite(animDiggingDown.getKeyFrame(0));
 	}
-	
+
 	private void setupSpriteDiggingUp(Texture tex) {
 		TextureRegion texRegDiggingUp1 = new TextureRegion(tex, 38, 26, 14, 16);
 		TextureRegion texRegDiggingUp2 = new TextureRegion(tex, 52, 26, 14, 16);
 		TextureRegion texRegDiggingUp3 = new TextureRegion(tex, 66, 26, 14, 16);
-		
+
 		texRegsDiggingUp = new TextureRegion[3];
 		texRegsDiggingUp[0] = texRegDiggingUp1;
 		texRegsDiggingUp[1] = texRegDiggingUp2;
 		texRegsDiggingUp[2] = texRegDiggingUp3;
-		
+
 		int index = 0;
 		for (int i = 0; i < 2; i++) {
 			texRegsDiggingUp[index++] = texRegsDiggingUp[i];
@@ -223,18 +235,18 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 
 		float frameDur = 1f / 4f;
 		animDiggingUp = new Animation<TextureRegion>(frameDur, texRegsDiggingUp);
-		
+
 		spriteDiggingUp = new Sprite(animDiggingUp.getKeyFrame(0));
 	}
-	
+
 	private void setupSpriteClimbing(Texture tex) {
 		TextureRegion texRegClimbing1 = new TextureRegion(tex, 1, 14, 9, 12);
 		TextureRegion texRegClimbing2 = new TextureRegion(tex, 11, 14, 9, 12);
-		
+
 		texRegsClimbing = new TextureRegion[2];
 		texRegsClimbing[0] = texRegClimbing1;
 		texRegsClimbing[1] = texRegClimbing2;
-		
+
 		int index = 0;
 		for (int i = 0; i < 2; i++) {
 			texRegsClimbing[index++] = texRegsClimbing[i];
@@ -242,140 +254,130 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 
 		float frameDur = 1f / 4f;
 		animClimbing = new Animation<TextureRegion>(frameDur, texRegsClimbing);
-		
+
 		spriteClimbing = new Sprite(animClimbing.getKeyFrame(0));
 	}
-	
+
 	public void hurt(int damage) {
 		if (!invincible) {
 			if (hp <= 0) {
-				 hp = 0;
-			 } else {
-				 hp = hp - damage;
-				 invincible = true;
-			 }
+				hp = 0;
+			} else {
+				hp = hp - damage;
+				sfxPlayerHurt.play(1f);
+				invincible = true;
+			}
 		}
 	}
-	
+
 	Ladder tempLadder;
-	
+
 	private boolean placeTool = false;
 	private Vector2 ladderPos = new Vector2();
-	
+
 	private boolean UPKeyHasBeenPressed = false;
-	
+
 	private Vector2 rayDown = new Vector2(0, -10);
 	private Vector2 rayUp = new Vector2(0, 16);
 	private Vector2 rayLeft = new Vector2(-10, 0);
 	private Vector2 rayRight = new Vector2(10, 0);
-	
+
 	private final int extraWidthDig = 18;
+
 	private void handleInput(float delta) {
 		UPKeyHasBeenPressed = false;
-		
-//		TEST
-//		if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
-//			 
-//		}
-		
-		if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
-			hp = MathUtils.random(10);
-			if (hp == 0) {
-				hp = 1;
-			}
-		}
-//		TEST END
-		
+
 		if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
 			if (!digging) {
 				facingLeft = false;
 				body.setLinearVelocity(new Vector2(60, body.getLinearVelocity().y));
-				movingLR = true;	
+				movingLR = true;
 			} else {
 				facingLeft = false;
 				body.setLinearVelocity(new Vector2(60, body.getLinearVelocity().y));
 			}
 		}
-		
+
 		if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
 			if (!digging) {
 				facingLeft = true;
 				body.setLinearVelocity(new Vector2(-60, body.getLinearVelocity().y));
-				movingLR = true;	
+				movingLR = true;
 			} else {
 				facingLeft = true;
 				body.setLinearVelocity(new Vector2(-60, body.getLinearVelocity().y));
 			}
 		}
-		
+
 		if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
 			UPKeyHasBeenPressed = true;
 			if (!facingDown) {
 				facingUp = true;
 			}
-			
+
 			if (canClimb) {
 				body.setLinearVelocity(new Vector2(body.getLinearVelocity().x, 50));
 			}
 		} else {
 			facingUp = false;
 		}
-		
+
 		if (!UPKeyHasBeenPressed) {
 			if (ladders.size != 0) {
 				body.setLinearVelocity(new Vector2(body.getLinearVelocity().x, -3));
 			}
 		}
-		
+
 		if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
 			if (!facingUp) {
 				facingDown = true;
 			}
-			
+
 			if (canClimb) {
 				body.setLinearVelocity(new Vector2(body.getLinearVelocity().x, -50));
 			}
 		} else {
 			facingDown = false;
 		}
-		
+
 		if (!Gdx.input.isKeyPressed(Input.Keys.RIGHT) && !Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
 			body.setLinearVelocity(new Vector2(0, body.getLinearVelocity().y));
 			movingLR = false;
 		}
-		
+
 		if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-			if (grounded /*&& !digging*/ && (tempFractLeft != 0 || tempFractRight != 0)) {
+			if (grounded /* && !digging */ && (tempFractLeft != 0 || tempFractRight != 0)) {
 				sfxJump.play(1f);
 				body.setLinearVelocity(new Vector2(body.getLinearVelocity().x, 85));
 				groundedLeft = false;
 				groundedRight = false;
 			}
 		}
-		
+
 		if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
 			movingLR = false;
 			if (!digging && grounded) {
 				digging = true;
-				
+
 				elapsedTime = 0;
-				
+
 				if (!facingLeft) {
 					if (facingDown) {
 						digRayEnd.set(new Vector2(body.getTransform().getPosition().add(rayDown)));
-					} else if (facingUp){
+					} else if (facingUp) {
 						digRayEnd.set(new Vector2(body.getTransform().getPosition().add(rayUp)));
 					} else {
 						if (extendedDigFeature) {
 							if (groundedLeft && tempFractRight == 0) {
-								digRayEnd.set(new Vector2(body.getTransform().getPosition().add(new Vector2(extraWidthDig, 0))));
+								digRayEnd.set(new Vector2(
+										body.getTransform().getPosition().add(new Vector2(extraWidthDig, 0))));
 							} else {
 								digRayEnd.set(new Vector2(body.getTransform().getPosition().add(rayRight)));
 							}
 						} else {
 							digRayEnd.set(new Vector2(body.getTransform().getPosition().add(rayRight)));
 						}
-						
+
 					}
 				} else {
 					if (facingDown) {
@@ -385,9 +387,10 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 					} else {
 						if (extendedDigFeature) {
 							if (groundedRight && tempFractLeft == 0) {
-								digRayEnd.set(new Vector2(body.getTransform().getPosition().add(new Vector2(-extraWidthDig, 0))));
+								digRayEnd.set(new Vector2(
+										body.getTransform().getPosition().add(new Vector2(-extraWidthDig, 0))));
 							} else {
-								digRayEnd.set(new Vector2(body.getTransform().getPosition().add(rayLeft)));	
+								digRayEnd.set(new Vector2(body.getTransform().getPosition().add(rayLeft)));
 							}
 						} else {
 							digRayEnd.set(new Vector2(body.getTransform().getPosition().add(rayLeft)));
@@ -399,7 +402,7 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 				rayDig = false;
 			}
 		}
-		
+
 		if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
 			Vector2 tempDown = new Vector2();
 			if (tempFractLeft != 0 && tempFractRight != 0) { // if not in air...
@@ -408,63 +411,47 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 					rayPlaceTool = true;
 					super.getScreen().b2dWorld.rayCast(this, body.getTransform().getPosition(), tempDown);
 					rayPlaceTool = false;
-					
+
 					if (placeTool) {
-						System.out.println("ladder 1 !");					
+						System.out.println("ladder 1 !");
 						super.getScreen().placedTools.add(new Ladder(super.getScreen(), ladderPos.x, ladderPos.y));
 						placeTool = false;
 					}
-					
+
 				}
-				
-//				if (!canClimb) {
-//					super.getScreen().placedTools.add(new Ladder(super.getScreen(), ladderPos.x, ladderPos.y));
-//					System.out.println("Placed ladder!");
-//				} else {
-					
-//				}
 			} else {
 				if (canClimb) {
 					Vector2 tempUp = new Vector2(body.getTransform().getPosition().add(new Vector2(0, -10)));
 					tempDown.set((body.getTransform().getPosition()));
-					
+
 					rayPlaceToolCimbing = true;
 					super.getScreen().b2dWorld.rayCast(this, tempDown, tempUp);
 					rayPlaceToolCimbing = false;
-					
+
 					System.out.println(tempLadder);
-					
+
 					if (tempLadder != null) {
 						tempUp.set(tempLadder.body.getTransform().getPosition());
 						tempDown.set(tempLadder.body.getTransform().getPosition().add(new Vector2(0, 16)));
 						rayLadderAlreadyPlaced = true;
 						super.getScreen().b2dWorld.rayCast(this, tempUp, tempDown);
 						rayLadderAlreadyPlaced = false;
-						
+
 						if (placeTool) {
 							System.out.println("ladder 2 !");
-							super.getScreen().placedTools.add(new Ladder(super.getScreen(), tempLadder.body.getTransform().getPosition().x - 10, tempLadder.body.getTransform().getPosition().y + 10));
+							super.getScreen().placedTools.add(
+									new Ladder(super.getScreen(), tempLadder.body.getTransform().getPosition().x - 10,
+											tempLadder.body.getTransform().getPosition().y + 10));
 							placeTool = false;
 						}
 					}
-					
-					
-//					if (ladders.size == 1) {
-//						tempUp.set((body.getTransform().getPosition()));
-//						tempDown.set((body.getTransform().getPosition().add(new Vector2(0, 5))));
-						
-//						rayLadderAlreadyPlaced = true;
-//						super.getScreen().b2dWorld.rayCast(this, tempUp, tempDown);
-//						rayLadderAlreadyPlaced = false;
-						
-					
-//					}
 				}
 			}
 		}
 	}
-	
+
 	private Array<Ladder> ladders = new Array<Ladder>();
+
 	public void onCollisionBegin(Fixture fixture) {
 		if (fixture.getFilterData().categoryBits == CollisionContactListener.LADDER_COL) {
 			ladders.add((Ladder) fixture.getBody().getUserData());
@@ -474,71 +461,82 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 				if (xWoods >= 0 && xWoods < 127) {
 					xWoods = (byte) (xWoods + 1);
 				}
-				((Wood)fixture.getBody().getUserData()).remove = true;
+				((Wood) fixture.getBody().getUserData()).remove = true;
+				sfxItemObtain.play(1f);
 			} else if (fixture.getBody().getUserData() instanceof Coal) {
 				if (xCoal >= 0 && xCoal < 127) {
 					xCoal = (byte) (xCoal + 1);
 				}
-				((Coal)fixture.getBody().getUserData()).remove = true;
+				((Coal) fixture.getBody().getUserData()).remove = true;
+				sfxItemObtain.play(1f);
 			} else if (fixture.getBody().getUserData() instanceof Iron) {
 				if (xIron >= 0 && xIron < 127) {
 					xIron = (byte) (xIron + 1);
 				}
-				((Iron)fixture.getBody().getUserData()).remove = true;
+				((Iron) fixture.getBody().getUserData()).remove = true;
+				sfxItemObtain.play(1f);
 			} else if (fixture.getBody().getUserData() instanceof Mushroom) {
 				if (hp >= 0 && hp < 10) {
 					hp++;
 				}
-				((Mushroom)fixture.getBody().getUserData()).remove = true;
+				((Mushroom) fixture.getBody().getUserData()).remove = true;
+				sfxMushroomObtain.play(1f);
+			} else if (fixture.getBody().getUserData() instanceof Exit) {
+				getScreen().loadMap(getScreen().map02);
 			}
 		}
 	}
-	
+
 	public void onCollisionEnd(Fixture fixture) {
 		if (fixture.getFilterData().categoryBits == CollisionContactListener.LADDER_COL) {
 			ladders.removeValue((Ladder) fixture.getBody().getUserData(), true);
 		}
 	}
-	
+
 	public void onCollisionContinuos(Fixture fixture) {
-		
+
 	}
-	
+
 	private float elapsedTime = 0;
 	private final float animPlaySpeed1 = 2.5f;
 	private final float animPlaySpeed2 = 4.2f;
 	private final float animPlaySpeed3 = 1.75f;
-	
+
 	private Vector2 groundedLeftRayStart = new Vector2();
 	private Vector2 groundedLeftRayEnd = new Vector2();
 	private Vector2 groundedRightRayStart = new Vector2();
 	private Vector2 groundedRightRayEnd = new Vector2();
-	
+
 	private double invincibleTime = 1000;
 	private double invincibleTimeEnd;
 	private boolean invinsibleTimeSet = false;
-	
+
+	public void remove() {
+		getScreen().blocks.removeValue(this, true);
+	}
+
 	@Override
 	public void tick(float delta) {
-//		TEST
-//		System.out.println("ladders: " + ladders.size);
-		
 		elapsedTime += Gdx.graphics.getDeltaTime();
 		tempFractLeft = 0;
 		tempFractRight = 0;
-		
+
+		if (hp <= 0) {
+			getScreen().loadMap(getScreen().map01);
+		}
+
 		if (xWoods < 0) {
 			xWoods = 0;
 		}
-		
+
 		if (xCoal < 0) {
 			xCoal = 0;
 		}
-		
+
 		if (xIron < 0) {
 			xIron = 0;
 		}
-		
+
 		if (invincible) {
 			if (!invinsibleTimeSet) {
 				invincibleTimeEnd = System.currentTimeMillis() + invincibleTime;
@@ -552,47 +550,48 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 		} else {
 			invinsibleTimeSet = false;
 		}
-		
+
 		groundedLeftRayStart.set(body.getTransform().getPosition().add(new Vector2(-3.625f, -5f)));
 		groundedLeftRayEnd.set(body.getTransform().getPosition().add(new Vector2(-3.625f, -5.1f)));
-		
+
 		groundedRightRayStart.set(body.getTransform().getPosition().add(new Vector2(3.625f, -5f)));
 		groundedRightRayEnd.set(body.getTransform().getPosition().add(new Vector2(3.625f, -5.1f)));
-		
+
 		rayGroundedLeft = true;
 		super.getScreen().b2dWorld.rayCast(this, groundedLeftRayStart, groundedLeftRayEnd);
 		rayGroundedLeft = false;
 		rayGroundedRight = true;
 		super.getScreen().b2dWorld.rayCast(this, groundedRightRayStart, groundedRightRayEnd);
 		rayGroundedRight = false;
-		
-//		System.err.println("L = " + groundedLeft + "    R = " + groundedRight + "    Grounded = " + grounded);
-		
-//		System.out.println("L: " +  tempFractLeft);
-//		System.out.println("R: " +  tempFractRight);
-		
+
+		// System.err.println("L = " + groundedLeft + " R = " + groundedRight + "
+		// Grounded = " + grounded);
+
+		// System.out.println("L: " + tempFractLeft);
+		// System.out.println("R: " + tempFractRight);
+
 		if (groundedLeft || groundedRight) {
 			grounded = true;
 		} else {
 			grounded = false;
 		}
-		
+
 		if (ladders.size == 0) {
 			canClimb = false;
 		}
-		
+
 		handleInput(delta);
-		
-//		if (digging) {
-//			body.setLinearVelocity(new Vector2(0, body.getLinearVelocity().y));
-//		}
-		
+
+		// if (digging) {
+		// body.setLinearVelocity(new Vector2(0, body.getLinearVelocity().y));
+		// }
+
 		spriteWalkingLeft.setRegion(animWalkingLeft.getKeyFrame(elapsedTime * animPlaySpeed1, true));
 		spriteDiggingLeft.setRegion(animDiggingLeft.getKeyFrame(elapsedTime * animPlaySpeed2, false));
 		spriteDiggingDown.setRegion(animDiggingDown.getKeyFrame(elapsedTime * animPlaySpeed2, false));
 		spriteDiggingUp.setRegion(animDiggingUp.getKeyFrame(elapsedTime * animPlaySpeed2, false));
 		spriteClimbing.setRegion(animClimbing.getKeyFrame(elapsedTime * (animPlaySpeed3), true));
-		
+
 		if (facingLeft) {
 			spriteIdleLeft.setFlip(false, false);
 			spriteWalkingLeft.setFlip(false, false);
@@ -606,14 +605,20 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 			spriteDiggingDown.setFlip(true, false);
 			spriteDiggingUp.setFlip(true, false);
 		}
-		
-		spriteIdleLeft.setPosition(body.getTransform().getPosition().x - spriteIdleLeft.getRegionWidth() / 2, body.getTransform().getPosition().y + 0.99f - spriteIdleLeft.getRegionHeight() / 2);
-		spriteWalkingLeft.setPosition(body.getTransform().getPosition().x - spriteWalkingLeft.getRegionWidth() / 2, body.getTransform().getPosition().y + 0.99f - spriteWalkingLeft.getRegionHeight() / 2);
-		spriteDiggingLeft.setPosition(body.getTransform().getPosition().x - spriteDiggingLeft.getRegionWidth() / 2, body.getTransform().getPosition().y + 0.99f - spriteDiggingLeft.getRegionHeight() / 2);
-		spriteDiggingDown.setPosition(body.getTransform().getPosition().x - spriteDiggingDown.getRegionWidth() / 2, body.getTransform().getPosition().y - 1 + 0.99f - spriteDiggingDown.getRegionHeight() / 2);
-		spriteDiggingUp.setPosition(body.getTransform().getPosition().x - spriteDiggingUp.getRegionWidth() / 2, body.getTransform().getPosition().y + 2 + 0.99f - spriteDiggingUp.getRegionHeight() / 2);
-		spriteClimbing.setPosition(body.getTransform().getPosition().x - spriteClimbing.getRegionWidth() / 2, body.getTransform().getPosition().y + 0.99f - spriteClimbing.getRegionHeight() / 2);
-		
+
+		spriteIdleLeft.setPosition(body.getTransform().getPosition().x - spriteIdleLeft.getRegionWidth() / 2,
+				body.getTransform().getPosition().y + 0.99f - spriteIdleLeft.getRegionHeight() / 2);
+		spriteWalkingLeft.setPosition(body.getTransform().getPosition().x - spriteWalkingLeft.getRegionWidth() / 2,
+				body.getTransform().getPosition().y + 0.99f - spriteWalkingLeft.getRegionHeight() / 2);
+		spriteDiggingLeft.setPosition(body.getTransform().getPosition().x - spriteDiggingLeft.getRegionWidth() / 2,
+				body.getTransform().getPosition().y + 0.99f - spriteDiggingLeft.getRegionHeight() / 2);
+		spriteDiggingDown.setPosition(body.getTransform().getPosition().x - spriteDiggingDown.getRegionWidth() / 2,
+				body.getTransform().getPosition().y - 1 + 0.99f - spriteDiggingDown.getRegionHeight() / 2);
+		spriteDiggingUp.setPosition(body.getTransform().getPosition().x - spriteDiggingUp.getRegionWidth() / 2,
+				body.getTransform().getPosition().y + 2 + 0.99f - spriteDiggingUp.getRegionHeight() / 2);
+		spriteClimbing.setPosition(body.getTransform().getPosition().x - spriteClimbing.getRegionWidth() / 2,
+				body.getTransform().getPosition().y + 0.99f - spriteClimbing.getRegionHeight() / 2);
+
 		if (digging && animDiggingLeft.isAnimationFinished(elapsedTime * animPlaySpeed2)) {
 			digging = false;
 		} else if (digging && animDiggingDown.isAnimationFinished(elapsedTime * animPlaySpeed2)) {
@@ -621,10 +626,10 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 		} else if (digging && animDiggingUp.isAnimationFinished(elapsedTime * animPlaySpeed2)) {
 			digging = false;
 		}
-		
+
 		cameraPos = body.getPosition();
 	}
-	
+
 	private boolean rayDig = false;
 	private boolean rayPlaceTool = false;
 	private boolean rayPlaceToolCimbing = false;
@@ -633,94 +638,115 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 	private boolean rayGroundedRight = false;
 	private float tempFractLeft; // used to detect if in air. 0 = in air.
 	private float tempFractRight; // used to detect if in air. 0 = in air.
+
 	@Override
 	public float reportRayFixture(Fixture fixture, Vector2 point, Vector2 normal, float fraction) {
 		if (!super.getScreen().b2dWorld.isLocked()) {
 			if (rayDig) {
 				if (fixture.getFilterData().categoryBits == CollisionContactListener.BLOCK_COL) {
 					Object tempObj = fixture.getBody().getUserData();
-					
+
 					((Block) tempObj).currentHp = ((Block) tempObj).currentHp - 1;
 					((Block) tempObj).damageBlock();
-					
+
 					if (((Block) tempObj).currentHp <= 0) {
 						super.getScreen().b2dWorld.destroyBody(fixture.getBody());
 						if (((Block) tempObj).containsResource) {
 							((Block) tempObj).spawnResource();
 						}
 						super.getScreen().blocks.removeValue((Entity) tempObj, true);
-						
+						sfxDestroy.play(0.75f);
+
 						for (Entity entity : super.getScreen().blocks) {
 							((Block) entity).checkForNeighbours();
-							((Block) entity).updateSprite(AssetsManager.MANAGER.get(AssetsManager.ATLAS01, Texture.class));
+							((Block) entity)
+									.updateSprite(AssetsManager.MANAGER.get(AssetsManager.ATLAS01, Texture.class));
 						}
 					} else {
 						sfxDig.play(1f);
 					}
+				} else if (fixture.getFilterData().categoryBits == CollisionContactListener.TERRAIN_COL) {
+					sfxDenied.play(1f);
 				} else if (fixture.getFilterData().categoryBits == CollisionContactListener.ENEMY_COL) {
 					Object tempObj = fixture.getBody().getUserData();
-//					All enemies should be of class Enemy but I'm lazy.
+					// All enemies should be of class Enemy but I'm lazy.
 					if (tempObj instanceof Spider) {
 						((Spider) tempObj).onHit();
+						sfxEnemyHit.play(1f);
 					} else if (tempObj instanceof Rat) {
 						((Rat) tempObj).onHit();
+						sfxEnemyHit.play(1f);
 					} else if (tempObj instanceof Ant) {
 						((Ant) tempObj).onHit();
+						sfxEnemyHit.play(1f);
 					}
 				}
-//				System.out.println(super.getScreen().entities.size);
 			} else if (rayGroundedLeft) {
 				tempFractLeft = fraction; // if 0 = in air
-				if (fixture.getFilterData().categoryBits == CollisionContactListener.TERRAIN_COL || fixture.getFilterData().categoryBits == CollisionContactListener.BLOCK_COL) {
+				if (fixture.getFilterData().categoryBits == CollisionContactListener.TERRAIN_COL
+						|| fixture.getFilterData().categoryBits == CollisionContactListener.BLOCK_COL) {
 					groundedLeft = true;
 				} else {
 					groundedLeft = false;
 				}
 			} else if (rayGroundedRight) {
 				tempFractRight = fraction; // if 0 = in air
-				if (fixture.getFilterData().categoryBits == CollisionContactListener.TERRAIN_COL || fixture.getFilterData().categoryBits == CollisionContactListener.BLOCK_COL) {
+				if (fixture.getFilterData().categoryBits == CollisionContactListener.TERRAIN_COL
+						|| fixture.getFilterData().categoryBits == CollisionContactListener.BLOCK_COL) {
 					groundedRight = true;
 				} else {
 					groundedRight = false;
 				}
 			} else if (rayPlaceTool) { // LADDER
-				if (fixture.getFilterData().categoryBits == CollisionContactListener.TERRAIN_COL || fixture.getFilterData().categoryBits == CollisionContactListener.BLOCK_COL) {
-					ladderPos.set(new Vector2(fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y + 10));
+				if (fixture.getFilterData().categoryBits == CollisionContactListener.TERRAIN_COL
+						|| fixture.getFilterData().categoryBits == CollisionContactListener.BLOCK_COL) {
+					ladderPos.set(new Vector2(fixture.getBody().getPosition().x - 10,
+							fixture.getBody().getPosition().y + 10));
 					placeTool = true;
-//					super.getScreen().tools.add(new Ladder(super.getScreen(), fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y + 10));
+					// super.getScreen().tools.add(new Ladder(super.getScreen(),
+					// fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y +
+					// 10));
 				}
 			} else if (rayPlaceToolCimbing) { // LADDER while climbing
 				if (fixture.getFilterData().categoryBits == CollisionContactListener.LADDER_COL) {
 					tempLadder = (Ladder) fixture.getBody().getUserData();
-//					ladderPos.set(new Vector2(fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y + 10));
+					// ladderPos.set(new Vector2(fixture.getBody().getPosition().x - 10,
+					// fixture.getBody().getPosition().y + 10));
 					placeTool = true;
-//					super.getScreen().tools.add(new Ladder(super.getScreen(), fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y + 10));
+					// super.getScreen().tools.add(new Ladder(super.getScreen(),
+					// fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y +
+					// 10));
 				}
 			} else if (rayLadderAlreadyPlaced) { // LADDER while climbing
 				if (fixture.getFilterData().categoryBits == CollisionContactListener.LADDER_COL) {
-//					ladderPos.set(new Vector2(fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y + 10));
+					// ladderPos.set(new Vector2(fixture.getBody().getPosition().x - 10,
+					// fixture.getBody().getPosition().y + 10));
 					placeTool = false;
-//					super.getScreen().tools.add(new Ladder(super.getScreen(), fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y + 10));
+					// super.getScreen().tools.add(new Ladder(super.getScreen(),
+					// fixture.getBody().getPosition().x - 10, fixture.getBody().getPosition().y +
+					// 10));
 				}
 			}
 		}
 		return 0;
 	}
-	
+
 	private long newFlickerTime;
-	private long flickerTime = 60*2L;
+	private long flickerTime = 60 * 2L;
 	private boolean newFlickerTimeSet = false;
+
 	@Override
 	public void render(float delta) {
 		super.bodyCenter.set(new Vector3(body.getPosition().x, body.getPosition().y, 0));
-		super.bodyDimensions.set(new Vector3(7.25f + super.bBExtra / GameScreen.PPM, 10 + super.bBExtra / GameScreen.PPM, 0));
-		
+		super.bodyDimensions
+				.set(new Vector3(7.25f + super.bBExtra / GameScreen.PPM, 10 + super.bBExtra / GameScreen.PPM, 0));
+
 		if (super.getScreen().isInFrustum(super.bodyCenter, super.bodyDimensions)) {
 			super.render = true;
 		} else {
 			super.render = false;
 		}
-		
+
 		if (invincible) {
 			if (!newFlickerTimeSet) {
 				newFlickerTime = System.currentTimeMillis() + flickerTime;
@@ -734,7 +760,7 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 				}
 			}
 		}
-		
+
 		if (super.render) {
 			if (movingLR) {
 				if (canClimb) {
@@ -742,7 +768,7 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 				} else {
 					spriteWalkingLeft.draw(super.getScreen().game.batch);
 				}
-			} else if (!movingLR && digging){
+			} else if (!movingLR && digging) {
 				if (facingDown) {
 					spriteDiggingDown.draw(super.getScreen().game.batch);
 				} else if (facingUp) {
@@ -756,22 +782,18 @@ public class Player extends Entity implements Disposable, RayCastCallback {
 				spriteIdleLeft.draw(super.getScreen().game.batch);
 			}
 		}
-		
-//		if (currentFlickerTime >= flickerTimeSwitch) {
-//			currentFlickerTime = 0;
-//		}
 	}
-	
+
 	@Override
 	public void drawRays() {
 		super.getScreen().drawRays(groundedLeftRayStart, groundedLeftRayEnd);
 		super.getScreen().drawRays(groundedRightRayStart, groundedRightRayEnd);
-		
+
 		super.getScreen().drawRays(body.getTransform().getPosition(), digRayEnd);
 	}
 
 	@Override
 	public void dispose() {
-//		So far nothing to dispose...
+		// So far nothing to dispose...
 	}
 }

@@ -21,7 +21,6 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
-import com.badlogic.gdx.physics.box2d.Box2D;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
@@ -43,6 +42,7 @@ import mysko.pilzhere.gameboygame.entities.blocks.WoodBlock;
 import mysko.pilzhere.gameboygame.entities.enemies.Ant;
 import mysko.pilzhere.gameboygame.entities.enemies.Rat;
 import mysko.pilzhere.gameboygame.entities.enemies.Spider;
+import mysko.pilzhere.gameboygame.entities.resources.Exit;
 import mysko.pilzhere.gameboygame.entities.resources.Mushroom;
 import mysko.pilzhere.gameboygame.entities.resources.Wood;
 import mysko.pilzhere.gameboygame.gui.PlayerGUI;
@@ -54,62 +54,89 @@ import mysko.pilzhere.gameboygame.physics.CollisionContactListener;
  */
 public class GameScreen implements Screen {
 	public GameboyGame game;
-	
+
 	public World b2dWorld;
 	public Box2DDebugRenderer b2dDebugRenderer;
 	public CollisionContactListener contactListener;
-	
+
 	private OrthographicCamera cam;
 	private Viewport viewport;
-	
+
 	public ShapeRenderer shapeRenderer;
-	
-	private TiledMap map01;
-	private OrthogonalTiledMapRenderer mapRenderer;
-	
+
+	public TiledMap map01;
+	public TiledMap map02;
+
 	private boolean renderB2DBodies = false;
-	
-	public Array<Entity> players = new Array<Entity>(); 
+
+	public Array<Entity> players = new Array<Entity>();
 	public Array<Entity> blocks = new Array<Entity>();
 	public Array<Entity> enemies = new Array<Entity>();
 	public Array<Entity> placedTools = new Array<Entity>();
 	public Array<Entity> resources = new Array<Entity>();
-	
+
 	public int objectsRendered;
-	
+
 	public static final int PPM = 16;
-	
+
 	private PlayerGUI playerGUI;
-	
+
 	public GameScreen(GameboyGame game) {
 		this.game = game;
-		
-		initPhysicsWorld();
-		
+
+		// initPhysicsWorld();
+
 		cam = new OrthographicCamera();
 		cam.setToOrtho(false, Gdx.graphics.getWidth() / GameScreen.PPM, Gdx.graphics.getHeight() / GameScreen.PPM);
 		cam.far = 1;
-		cam.position.set(new Vector2(GameboyGame.GAMEBOY_WINDOW_WIDTH / GameScreen.PPM * 8, GameboyGame.GAMEBOY_WINDOW_HEIGHT / GameScreen.PPM * 8), 0);
+		cam.position.set(new Vector2(GameboyGame.GAMEBOY_WINDOW_WIDTH / GameScreen.PPM * 8,
+				GameboyGame.GAMEBOY_WINDOW_HEIGHT / GameScreen.PPM * 8), 0);
 		cam.update();
-		viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), cam);
-		
-//		Update game window size.
-		Gdx.graphics.setWindowedMode(GameboyGame.GAMEBOY_WINDOW_WIDTH * GameboyGame.DEFAULT_WINDOW_SCALE, GameboyGame.GAMEBOY_WINDOW_HEIGHT * GameboyGame.DEFAULT_WINDOW_SCALE);
-		
+		viewport = new FitViewport(160, 144, cam);
+
 		map01 = AssetsManager.MANAGER.get(AssetsManager.MAP01);
-		
-		mapRenderer = new OrthogonalTiledMapRenderer(map01);
-//		mapRenderer.getMap().getLayers().get(3).
-		
+		map02 = AssetsManager.MANAGER.get(AssetsManager.MAP02);
+
+		this.game.mapRenderer = new OrthogonalTiledMapRenderer(map01);
+
 		shapeRenderer = new ShapeRenderer();
-		
+
+		loadMap(map01);
+	}
+
+	public void loadMap(TiledMap map) {
+		// players.clear();
+
+		if (b2dWorld != null) {
+			if (!b2dWorld.isLocked()) {
+				b2dWorld.dispose();
+				b2dWorld = null;
+			}
+		}
+
+		blocks.clear();
+		resources.clear();
+		enemies.clear();
+		placedTools.clear();
+		players.clear();
+
+		initPhysicsWorld();
+
+		// System.out.println(blocks.size);
+		// System.out.println(resources.size);
+		// System.out.println(enemies.size);
+		// System.out.println(placedTools.size);
+		// System.out.println(players.size);
+
+		this.game.mapRenderer.setMap(map);
+
 		BodyDef mapWallsBodyDef = new BodyDef();
 		PolygonShape mapWallsShape = new PolygonShape();
 		FixtureDef mapWallsFixtureDef = new FixtureDef();
 		Body mapWallsBody;
-		
-//		Map collisions		
-		for (MapObject object : map01.getLayers().get("collision").getObjects().getByType(RectangleMapObject.class)) {
+
+		// Map collisions
+		for (MapObject object : map.getLayers().get("collision").getObjects().getByType(RectangleMapObject.class)) {
 			Rectangle rect = ((RectangleMapObject) object).getRectangle();
 			mapWallsBodyDef.type = BodyDef.BodyType.StaticBody;
 			mapWallsBodyDef.position.set(rect.getX() + rect.getWidth() / 2, rect.getY() + rect.getHeight() / 2);
@@ -122,235 +149,260 @@ public class GameScreen implements Screen {
 			mapWallsBody.createFixture(mapWallsFixtureDef);
 		}
 		mapWallsShape.dispose();
-		
-//		Place blocks
-		for (MapObject object : map01.getLayers().get("blocks").getObjects()) {
-			
+
+		// Place blocks
+		for (MapObject object : map.getLayers().get("blocks").getObjects()) {
+
 			if (object.getName() != null && !object.getName().isEmpty()) {
 				if (object.getName().equals("blockDirt")) {
-					blocks.add(new DirtBlock(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+					blocks.add(new DirtBlock(this, (Float) object.getProperties().get("x"),
+							(Float) object.getProperties().get("y")));
 				} else if (object.getName().equals("blockWood")) {
-					blocks.add(new WoodBlock(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+					blocks.add(new WoodBlock(this, (Float) object.getProperties().get("x"),
+							(Float) object.getProperties().get("y")));
 				} else if (object.getName().equals("blockCoal")) {
-					blocks.add(new CoalBlock(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+					blocks.add(new CoalBlock(this, (Float) object.getProperties().get("x"),
+							(Float) object.getProperties().get("y")));
 				} else if (object.getName().equals("blockIron")) {
-					blocks.add(new IronBlock(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+					blocks.add(new IronBlock(this, (Float) object.getProperties().get("x"),
+							(Float) object.getProperties().get("y")));
 				} else if (object.getName().equals("blockMushroom")) {
-					resources.add(new Mushroom(this, (Float)object.getProperties().get("x") + 8, (Float)object.getProperties().get("y") + 8));
+					resources.add(new Mushroom(this, (Float) object.getProperties().get("x") + 8,
+							(Float) object.getProperties().get("y") + 8));
 				} else if (object.getName().equals("blockUnbreakable")) {
-					blocks.add(new UnbreakableBlock(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+					blocks.add(new UnbreakableBlock(this, (Float) object.getProperties().get("x"),
+							(Float) object.getProperties().get("y")));
+				} else if (object.getName().equals("exit")) {
+					resources.add(new Exit(this, (Float) object.getProperties().get("x"),
+							(Float) object.getProperties().get("y")));
 				}
 			}
 		}
-		
-//		Update blocks after placing to check for neighbors for adjusting texture(s).
+
+		// Update blocks after placing to check for neighbors for adjusting texture(s).
 		for (Entity entity : blocks) {
 			((Block) entity).checkForNeighbours();
 			((Block) entity).updateSprite(AssetsManager.MANAGER.get(AssetsManager.ATLAS01, Texture.class));
 		}
-		
-		for (MapObject object : map01.getLayers().get("enemies").getObjects()) {
-			
+
+		for (MapObject object : map.getLayers().get("enemies").getObjects()) {
 			if (object.getName() != null && !object.getName().isEmpty()) {
 				if (object.getName().equals("spider")) {
-					enemies.add(new Spider(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+					enemies.add(new Spider(this, (Float) object.getProperties().get("x"),
+							(Float) object.getProperties().get("y")));
 				} else if (object.getName().equals("rat")) {
-					enemies.add(new Rat(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+					enemies.add(new Rat(this, (Float) object.getProperties().get("x"),
+							(Float) object.getProperties().get("y")));
 				} else if (object.getName().equals("ant")) {
-					enemies.add(new Ant(this, (Float)object.getProperties().get("x"), (Float)object.getProperties().get("y")));
+					enemies.add(new Ant(this, (Float) object.getProperties().get("x"),
+							(Float) object.getProperties().get("y")));
 				}
 			}
 		}
-		
-		players.add(new Player(this, 10 * 16, 45 * 16));
-		
-		playerGUI = new PlayerGUI(this, (Player) players.get(0));
+
+		for (MapObject object : map.getLayers().get("blocks").getObjects()) {
+			if (object.getName() != null && !object.getName().isEmpty()) {
+				if (object.getName().equals("start")) {
+					// ((Player) players.get(0)).body.getTransform().setPosition(new
+					// Vector2((Float)object.getProperties().get("x"),
+					// (Float)object.getProperties().get("y") + 8));
+					players.add(new Player(this, (Float) object.getProperties().get("x"),
+							(Float) object.getProperties().get("y") + 8));
+				}
+			}
+		}
+
+		if (playerGUI == null) {
+			playerGUI = new PlayerGUI(this, (Player) players.get(0));
+		} else {
+			playerGUI.player = (Player) players.get(0);
+		}
 	}
-	
-	private void initPhysicsWorld() {		
+
+	private void initPhysicsWorld() {
 		Vector2 stdGravity = new Vector2(0, -90); // Y: -30.
 		contactListener = new CollisionContactListener();
 		b2dWorld = new World(new Vector2(stdGravity), true);
 		b2dWorld.setContactListener(contactListener);
-		
+
 		if (GameboyGame.USING_B2D_DEBUG_RENDERER) {
 			b2dDebugRenderer = new Box2DDebugRenderer();
 		}
 	}
-	
+
 	@Override
 	public void show() {
-		
+
 	}
-	
+
 	private void handleInput(float delta) {
 		if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
 			enemies.add(new Spider(this, 11 * 16, 44 * 16));
 		}
-		
+
 		if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
 			enemies.add(new Rat(this, 11 * 16, 44 * 16));
 		}
-		
+
 		if (Gdx.input.isKeyJustPressed(Input.Keys.Y)) {
 			enemies.add(new Ant(this, 11 * 16, 44 * 16));
 		}
-		
-//		if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
-//			Gdx.graphics.setWindowedMode(160 * 4, 144 * 4);
-//		}
-		
+
 		if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
 			resources.add(new Wood(this, 10 * 16, 45 * 16));
 		}
-		
+
 		if (Gdx.input.isKeyJustPressed(Input.Keys.F3)) {
 			renderB2DBodies = !renderB2DBodies;
 		}
-		
+
 		if (Gdx.input.isKeyJustPressed(Input.Keys.U)) {
 			for (Entity entity : blocks) {
 				((Block) entity).checkForNeighbours();
 				((Block) entity).updateSprite(AssetsManager.MANAGER.get(AssetsManager.ATLAS01, Texture.class));
 			}
 		}
+
+		if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+			game.setScreen(new StartupScreen(game));
+		}
 	}
-	
+
 	private void tick(float delta) {
 		playerGUI.tick(delta);
-		
+
 		for (Entity entity : players) {
 			entity.tick(delta);
 		}
-		
+
 		for (Entity entity : blocks) {
 			entity.tick(delta);
 		}
-		
+
 		for (Entity entity : placedTools) {
 			entity.tick(delta);
 		}
-		
+
 		for (Entity entity : enemies) {
 			entity.tick(delta);
 		}
-		
+
 		for (Entity entity : resources) {
 			entity.tick(delta);
 		}
-		
-//		moveCamera(cam);
 	}
-	
+
 	private void moveCamera(OrthographicCamera camera) {
-		camera.position.x = (MathUtils.round(((Player)players.get(0)).cameraPos.x * GameScreen.PPM) / GameScreen.PPM);
-		camera.position.y = (MathUtils.round(((Player)players.get(0)).cameraPos.y * GameScreen.PPM) / GameScreen.PPM) - 0.81f * GameScreen.PPM;
-//		Interpolation.smooth.apply(camera.position.x);
-//		Interpolation.smooth.apply(camera.position.y);
+		if (players.size != 0) {
+			camera.position.x = (MathUtils.round(((Player) players.get(0)).cameraPos.x * GameScreen.PPM)
+					/ GameScreen.PPM);
+			camera.position.y = (MathUtils.round(((Player) players.get(0)).cameraPos.y * GameScreen.PPM)
+					/ GameScreen.PPM) - 0.81f * GameScreen.PPM;
+		}
 	}
-	
+
 	public boolean isInFrustum(Vector3 center, Vector3 dimensions) {
 		if (cam.frustum.boundsInFrustum(center, dimensions)) {
 			return true;
 		} else {
 			return false;
 		}
-	}	
-	
+	}
+
 	@Override
 	public void render(float delta) {
 		objectsRendered = 0;
-		
+
 		handleInput(delta);
 		tick(delta);
 
-		mapRenderer.setView(cam);
-		avoidMapTearingLeft(161);		
-		mapRenderer.render();
-		
+		this.game.mapRenderer.setView(cam);
+		avoidMapTearingLeft(161);
+		this.game.mapRenderer.render();
+
 		game.batch.setProjectionMatrix(cam.combined);
 		game.batch.begin();
-		
+
 		for (Entity entity : blocks) {
 			entity.render(delta);
 			if (entity.render) {
 				objectsRendered++;
 			}
 		}
-		
+
 		for (Entity entity : placedTools) {
 			entity.render(delta);
 			if (entity.render) {
 				objectsRendered++;
 			}
 		}
-		
+
 		for (Entity entity : resources) {
 			entity.render(delta);
 			if (entity.render) {
 				objectsRendered++;
 			}
 		}
-		
+
 		for (Entity entity : enemies) {
 			entity.render(delta);
 			if (entity.render) {
 				objectsRendered++;
 			}
 		}
-		
+
 		for (Entity entity : players) {
 			entity.render(delta);
 			if (entity.render) {
 				objectsRendered++;
 			}
 		}
-		
+
 		game.batch.end();
-		
+
 		if (GameboyGame.USING_B2D_DEBUG_RENDERER) {
 			if (renderB2DBodies) {
 				b2dDebugRenderer.render(b2dWorld, cam.combined);
 			}
 		}
-		
-//		cam.update();
-		
+
 		playerGUI.render(delta);
-		
-//		For debugging
+
+		// For debugging
 		for (Entity entity : enemies) {
 			entity.drawRays();
 		}
 
-//		For debugging
-//		players.get(0).drawRays();
-		
+		// For debugging
+		// players.get(0).drawRays();
+
 		tickPhysicsWorld();
 		moveCamera(cam);
-		cam.update(); // Fixed sometimes camera/player body jitter  @ startup(?)
+		cam.update(); // Fixed sometimes camera/player body jitter @ startup(?)
 	}
-	
+
 	private Vector2 tempScreenPos = new Vector2();
 	private final Vector2 screenPosOffset = new Vector2(-1, 0);
+
 	private void avoidMapTearingLeft(float newWidth) {
-		mapRenderer.getViewBounds().setWidth(newWidth);
-		mapRenderer.getViewBounds().setPosition(mapRenderer.getViewBounds().getPosition(tempScreenPos).add(screenPosOffset));
+		this.game.mapRenderer.getViewBounds().setWidth(newWidth);
+		this.game.mapRenderer.getViewBounds()
+				.setPosition(this.game.mapRenderer.getViewBounds().getPosition(tempScreenPos).add(screenPosOffset));
 	}
-	
+
 	public void drawRays(Vector2 rayBegin, Vector2 rayEnd) {
 		shapeRenderer.setProjectionMatrix(cam.combined);
-//		System.out.println("B " + shapeRenderer.getProjectionMatrix());
 		shapeRenderer.begin(ShapeType.Line);
 		shapeRenderer.setColor(Color.RED);
 		shapeRenderer.line(rayBegin, rayEnd);
 		shapeRenderer.end();
 	}
-	
+
 	private float accumulator = 0;
-	private final float physTick = 1f/60f; // OLD: 1f/45f
+	private final float physTick = 1f / 60f; // OLD: 1f/45f
 	private final int physVelIter = 6;
 	private final int physPosIter = 2;
+
 	private void tickPhysicsWorld() {
 		float frameTime = Math.min(Gdx.graphics.getDeltaTime(), 0.25f);
 		accumulator += frameTime;
@@ -363,35 +415,32 @@ public class GameScreen implements Screen {
 	@Override
 	public void resize(int width, int height) {
 		cam.viewportWidth = width;
-		cam.viewportHeight = height;		
+		cam.viewportHeight = height;
 		viewport.update(width, height);
-		
-        cam.update();
+
+		cam.update();
 	}
 
 	@Override
 	public void pause() {
-		
+
 	}
 
 	@Override
 	public void resume() {
-		
+
 	}
 
 	@Override
 	public void hide() {
-		
+
 	}
 
 	@Override
 	public void dispose() {
 		map01.dispose();
-		mapRenderer.dispose();
-		
 		b2dDebugRenderer.dispose();
 		b2dWorld.dispose();
-		
 		shapeRenderer.dispose();
 	}
 

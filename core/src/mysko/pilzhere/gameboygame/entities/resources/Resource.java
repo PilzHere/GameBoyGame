@@ -15,15 +15,19 @@ import mysko.pilzhere.gameboygame.screens.GameScreen;
  * @author PilzHere
  *
  */
-public class Resource extends Entity implements Disposable{
-	
-	protected Body body;
-	protected TextureRegion texRegMain;	
+public class Resource extends Entity implements Disposable {
+
+	public Body body;
+	protected TextureRegion texRegMain;
 	protected Sprite spriteMain;
-	public boolean remove = false; 
-	
+	public boolean remove = false;
+
 	public Resource(GameScreen screen, float spawnPosX, float spawnPosY) {
 		super.setScreen(screen);
+	}
+
+	public void remove() {
+		getScreen().blocks.removeValue(this, true);
 	}
 
 	@Override
@@ -35,14 +39,14 @@ public class Resource extends Entity implements Disposable{
 			}
 		}
 	}
-	
+
 	@Override
 	public void render(float delta) {
-//		Nothing here
+		// Nothing here
 	}
-	
+
 	@Override
 	public void dispose() {
-		
+
 	}
 }

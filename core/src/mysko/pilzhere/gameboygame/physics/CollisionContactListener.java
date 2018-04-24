@@ -17,85 +17,85 @@ import mysko.pilzhere.gameboygame.entities.enemies.Spider;
  * @author PilzHere
  *
  */
-public class CollisionContactListener implements ContactListener{
-	
-//	Collision category bits.
+public class CollisionContactListener implements ContactListener {
+
+	// Collision category bits.
 	public static final short PLAYER_COL = 0x1;
 	public static final short TERRAIN_COL = 0x1 << 1;
 	public static final short BLOCK_COL = 0x1 << 2;
 	public static final short ENEMY_COL = 0x1 << 3;
 	public static final short LADDER_COL = 0x1 << 4;
 	public static final short RESOURCE_COL = 0x1 << 5;
-	
-//	Collision mask bits.
-	public static final short PLAYER_COLLIDES_WITH = (short) TERRAIN_COL | BLOCK_COL | ENEMY_COL | LADDER_COL | RESOURCE_COL;
+	public static final short EXIT_COL = 0x1 << 5;
+
+	// Collision mask bits.
+	public static final short PLAYER_COLLIDES_WITH = (short) TERRAIN_COL | BLOCK_COL | ENEMY_COL | LADDER_COL
+			| RESOURCE_COL;
 	public static final short TERRAIN_COLLIDES_WITH = (short) PLAYER_COL | ENEMY_COL | RESOURCE_COL;
 	public static final short BLOCK_COLLIDES_WITH = (short) PLAYER_COL | ENEMY_COL | RESOURCE_COL;
 	public static final short ENEMY_COLLIDES_WITH = (short) PLAYER_COL | BLOCK_COL | TERRAIN_COL;
 	public static final short LADDER_COLLIDES_WITH = (short) PLAYER_COL;
 	public static final short RESOURCE_COLLIDES_WITH = (short) PLAYER_COL | TERRAIN_COL | BLOCK_COL;
-	
+	public static final short EXIT_COLLIDES_WITH = (short) PLAYER_COL;
+
 	@Override
 	public void beginContact(Contact contact) {
 		if (contact.getFixtureA().getFilterData().categoryBits == CollisionContactListener.PLAYER_COL) {
 			((Player) contact.getFixtureA().getBody().getUserData()).onCollisionBegin(contact.getFixtureB());
-//			System.err.println("CollisionBEGIN_A");
+			// System.err.println("CollisionBEGIN_A");
 		}
-		
-//		Fetch entity from Enemies.
+
+		// Fetch entity from Enemies.
 		if (contact.getFixtureA().getFilterData().categoryBits == CollisionContactListener.ENEMY_COL) {
-//			System.err.println("CollisionBEGIN_A");
+			// System.err.println("CollisionBEGIN_A");
 		}
 
 		if (contact.getFixtureB().getFilterData().categoryBits == CollisionContactListener.PLAYER_COL) {
 			((Player) contact.getFixtureB().getBody().getUserData()).onCollisionBegin(contact.getFixtureA());
-//			System.err.println("CollisionBEGIN_B");
+			// System.err.println("CollisionBEGIN_B");
 		}
-		
-//		Fetch entity from Enemies.
+
+		// Fetch entity from Enemies.
 		if (contact.getFixtureB().getFilterData().categoryBits == CollisionContactListener.ENEMY_COL) {
-//			System.err.println("CollisionBEGIN_B");
+			// System.err.println("CollisionBEGIN_B");
 		}
-		
-//		Fetch entity from Enemies.
-//		if (contact.getFixtureA().getFilterData().categoryBits == CollisionContactListener.RESOURCE_COL) {
-//			if (contact.getFixtureA().getBody().getUserData() instanceof Wood) {
-//				
-//			}
-////			System.err.println("CollisionBEGIN_B");
-//		}
-		
-//		TEST
-//		System.err.println("CollisionBEGIN_A: " + contact.getFixtureA().getBody().getUserData());
-//		System.err.println("CollisionBEGIN_B: " + contact.getFixtureB().getBody().getUserData());
+
+		// Fetch entity from Enemies.
+		// if (contact.getFixtureA().getFilterData().categoryBits ==
+		// CollisionContactListener.RESOURCE_COL) {
+		// if (contact.getFixtureA().getBody().getUserData() instanceof Wood) {
+		//
+		// }
+		//// System.err.println("CollisionBEGIN_B");
+		// }
 	}
 
 	@Override
 	public void endContact(Contact contact) {
 		if (contact.getFixtureA().getFilterData().categoryBits == CollisionContactListener.PLAYER_COL) {
 			((Player) contact.getFixtureA().getBody().getUserData()).onCollisionEnd(contact.getFixtureB());
-//			System.err.println("CollisionEND_A");
+			// System.err.println("CollisionEND_A");
 		}
-		
-//		Fetch entity from Enemies.
+
+		// Fetch entity from Enemies.
 		if (contact.getFixtureA().getFilterData().categoryBits == CollisionContactListener.ENEMY_COL) {
-//			System.err.println("CollisionEND_A");
+			// System.err.println("CollisionEND_A");
 		}
-		
+
 		if (contact.getFixtureB().getFilterData().categoryBits == CollisionContactListener.PLAYER_COL) {
 			((Player) contact.getFixtureB().getBody().getUserData()).onCollisionEnd(contact.getFixtureA());
-//			System.err.println("CollisionEND_B");
+			// System.err.println("CollisionEND_B");
 		}
-		
-//		Fetch entity from Enemies.
+
+		// Fetch entity from Enemies.
 		if (contact.getFixtureB().getFilterData().categoryBits == CollisionContactListener.ENEMY_COL) {
-//			System.err.println("CollisionEND_B");
+			// System.err.println("CollisionEND_B");
 		}
 	}
 
 	@Override
 	public void preSolve(Contact contact, Manifold oldManifold) {
-//		Fetch entity from Enemies.
+		// Fetch entity from Enemies.
 		if (contact.getFixtureA().getFilterData().categoryBits == CollisionContactListener.ENEMY_COL) {
 			if (contact.getFixtureA().getBody().getUserData() instanceof Spider) {
 				((Spider) contact.getFixtureA().getBody().getUserData()).onCollisionContinuos(contact.getFixtureB());
@@ -105,7 +105,7 @@ public class CollisionContactListener implements ContactListener{
 				((Ant) contact.getFixtureA().getBody().getUserData()).onCollisionContinuos(contact.getFixtureB());
 			}
 		}
-		
+
 		if (contact.getFixtureB().getFilterData().categoryBits == CollisionContactListener.ENEMY_COL) {
 			if (contact.getFixtureB().getBody().getUserData() instanceof Spider) {
 				((Spider) contact.getFixtureB().getBody().getUserData()).onCollisionContinuos(contact.getFixtureA());
@@ -116,10 +116,10 @@ public class CollisionContactListener implements ContactListener{
 			}
 		}
 	}
-	
+
 	@Override
 	public void postSolve(Contact contact, ContactImpulse impulse) {
-		
+
 	}
 
 }

@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.profiling.GLProfiler;
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.physics.box2d.Box2D;
 
 import mysko.pilzhere.gameboygame.assets.AssetsManager;
@@ -20,10 +21,11 @@ public class GameboyGame extends Game {
 	public static final int DEFAULT_WINDOW_SCALE = 4;
 	
 	public static boolean USING_PROFILER = false; // false
-	public static boolean USING_B2D_DEBUG_RENDERER = true; // false
+	public static boolean USING_B2D_DEBUG_RENDERER = false; // false
 	public static GLProfiler profiler;
 	
 	public SpriteBatch batch;
+	public OrthogonalTiledMapRenderer mapRenderer;
 	
 	@Override
 	public void create () {
@@ -38,8 +40,10 @@ public class GameboyGame extends Game {
 		
 		batch = new SpriteBatch();
 		
-//		this.setScreen(new StartupScreen(this));
-		this.setScreen(new GameScreen(this));
+		this.setScreen(new StartupScreen(this));
+//		this.setScreen(new GameScreen(this));
+		
+		Gdx.graphics.setWindowedMode(GameboyGame.GAMEBOY_WINDOW_WIDTH * GameboyGame.DEFAULT_WINDOW_SCALE, GameboyGame.GAMEBOY_WINDOW_HEIGHT * GameboyGame.DEFAULT_WINDOW_SCALE);
 	}
 	
 	private void loadAssets() {
@@ -57,23 +61,7 @@ public class GameboyGame extends Game {
 		AssetsManager.MANAGER.finishLoading();
 	}
 
-//	private long waitTime = 1000L;
-//	private long waitTimeEnd;
-//	private boolean waitTimeSet = false;
-//	private boolean onlyOnce = false;
-	public void tick() {
-//		if (!onlyOnce) {
-//			if (!waitTimeSet) {
-//				waitTimeEnd = System.currentTimeMillis() + waitTime;
-//				waitTimeSet = true;
-//			} else {
-//				if (System.currentTimeMillis() >= waitTimeEnd) {
-//					this.setScreen(new GameScreen(this));
-//					onlyOnce = true;
-//				}
-//			}
-//		}		
-		
+	public void tick() {		
 		if (USING_PROFILER) {
 			profiler.reset();
 		}
@@ -84,7 +72,6 @@ public class GameboyGame extends Game {
 		tick();
 		
 		Gdx.gl.glClearColor(15f/256, 40f/256, 15f/256, 1); // GameBoy darkest shade.
-//		Gdx.gl.glClearColor(0.25f, 0.25f, 0.25f, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		
 		super.render();
@@ -94,6 +81,7 @@ public class GameboyGame extends Game {
 	public void dispose () {
 		super.dispose();
 		batch.dispose();
+		mapRenderer.dispose();
 		
 		AssetsManager.dispose();
 	}

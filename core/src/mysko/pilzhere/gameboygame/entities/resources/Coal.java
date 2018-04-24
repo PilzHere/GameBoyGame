@@ -10,9 +10,9 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
-import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
 import com.badlogic.gdx.utils.Disposable;
 
 import mysko.pilzhere.gameboygame.assets.AssetsManager;
@@ -58,10 +58,8 @@ public class Coal extends Resource implements Disposable {
 		super.body.setGravityScale(2);
 
 		shape.dispose();
-		
+
 		super.body.setLinearVelocity(new Vector2(MathUtils.random(-30, 30), MathUtils.random(0, 55)));
-		
-		
 	}
 
 	@Override
@@ -70,8 +68,7 @@ public class Coal extends Resource implements Disposable {
 
 		super.spriteMain.setPosition(super.body.getTransform().getPosition().x - super.spriteMain.getRegionWidth() / 2,
 				super.body.getTransform().getPosition().y - 0.99f - super.spriteMain.getRegionHeight() / 2);
-		
-		
+
 	}
 
 	@Override
@@ -79,7 +76,8 @@ public class Coal extends Resource implements Disposable {
 		super.render(delta);
 
 		super.bodyCenter.set(new Vector3(super.body.getPosition().x, super.body.getPosition().y, 0));
-		super.bodyDimensions.set(new Vector3(4 + super.bBExtra / GameScreen.PPM, 4 + super.bBExtra / GameScreen.PPM, 0));
+		super.bodyDimensions
+				.set(new Vector3(4 + super.bBExtra / GameScreen.PPM, 4 + super.bBExtra / GameScreen.PPM, 0));
 		if (super.getScreen().isInFrustum(super.bodyCenter, super.bodyDimensions)) {
 			super.render = true;
 		} else {
